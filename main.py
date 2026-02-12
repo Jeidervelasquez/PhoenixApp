@@ -2,66 +2,62 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="Phoenix Empire 🔥", page_icon="🔥", layout="centered")
+# --- CONFIGURACIÓN ---
+st.set_page_config(page_title="PHOENIX EMPIRE CONTROL", layout="wide")
 
-# Estilo visual Rojo y Negro
-st.markdown("""
-    <style>
-    .stApp { background-color: #0e1117; }
-    h1, h2, h3 { color: #FF4B4B !important; text-align: center; }
-    div.stButton > button {
-        background-color: #FF4B4B;
-        color: white;
-        width: 100%;
-        border-radius: 10px;
-        height: 3em;
-        font-weight: bold;
-    }
-    .stTextInput > div > div > input {
-        text-align: center;
-        border-color: #FF4B4B;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- CONEXIÓN A FIREBASE ---
 if not firebase_admin._apps:
-    try:
-        cred = credentials.Certificate("llave.json")
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'
-        })
-    except Exception as e:
-        st.error(f"Error al conectar con la base de datos: {e}")
+    cred = credentials.Certificate("llave.json")
+    firebase_admin.initialize_app(cred, {'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'})
 
-# --- INTERFAZ ---
-st.title("PHOENIX EMPIRE 🔥")
-st.write("---")
+# --- ESTILO ---
+st.markdown("<style>h1, h2 {color: #E74C3C; text-align: center;} .stButton>button {background-color: #E74C3C; color: white;}</style>", unsafe_allow_html=True)
 
-st.markdown("### 🛡️ Acceso de Guerrero")
-id_usuario = st.text_input("Ingresa tu ID de Jugador", placeholder="Ej: 123456", type="default")
+# --- MENÚ LATERAL (OPCIONES DEL PROGRAMA) ---
+st.sidebar.title("🎮 MENÚ LÍDER")
+opcion = st.sidebar.radio("Ir a:", ["Consultar ID", "Gestionar Diamantes/Deuda", "Ranking del Clan"])
 
-if st.button("CONSULTAR ESTADO"):
-    if id_usuario:
-        # Buscamos en la ruta 'usuarios/ID'
-        usuario_ref = db.reference(f'usuarios/{id_usuario}').get()
-        
-        if usuario_ref:
-            st.success(f"¡Bienvenido al frente, {usuario_ref.get('nombre', 'Guerrero')}!")
-            
-            # Tarjetas de datos
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="💎 DIAMANTES", value=f"{usuario_ref.get('Diamantes', 0)}")
-            with col2:
-                st.metric(label="💰 DEUDA", value=f"{usuario_ref.get('deuda', 0)}")
-            
-            st.write("---")
-            st.info(f"Rango actual: {usuario_ref.get('rol', 'Miembro')}")
-        else:
-            st.error("ID no encontrado en el sistema del Imperio.")
-    else:
-        st.warning("Por favor, ingresa un ID válido.")
+# --- OPCIÓN 1: CONSULTAR ---
+if opcion == "Consultar ID":
+    st.title("🔍 CONSULTA DE GUERRERO")
+    id_buscado = st.text_input("Ingresa el ID")
+    if st.button("Buscar"):
+        user = db.reference(f'usuarios/{id_buscado}').get()
+        if user:
+            st.subheader(f"Guerrero: {user.get('nombre')}")
+            st.metric("💎 Diamantes", user.get('Diamantes', 0))
+            st.metric("💰 Deuda", user.get('deuda', 0))
+        else: st.error("No existe.")
 
-st.caption("Phoenix Empire Control System © 2026")
+# --- OPCIÓN 2: GESTIONAR (COMO EN TU PC) ---
+elif opcion == "Gestionar Diamantes/Deuda":
+    st.title("⚒️ PANEL DE CONTROL")
+    id_gest = st.text_input("ID del Miembro")
+    tipo = st.selectbox("¿Qué vas a modificar?", ["Diamantes", "Deuda"])
+    cantidad = st.number_input("Cantidad", step=1)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("➕ SUMAR"):
+            ref = db.reference(f'usuarios/{id_gest}')
+            datos = ref.get()
+            if datos:
+                actual = datos.get(tipo, 0)
+                ref.update({tipo: actual + cantidad})
+                st.success("¡Actualizado!")
+    with col2:
+        if st.button("➖ RESTAR"):
+            ref = db.reference(f'usuarios/{id_gest}')
+            datos = ref.get()
+            if datos:
+                actual = datos.get(tipo, 0)
+                ref.update({tipo: max(0, actual - cantidad)})
+                st.success("¡Actualizado!")
+
+# --- OPCIÓN 3: RANKING ---
+elif opcion == "Ranking del Clan":
+    st.title("🏆 RANKING DE DIAMANTES")
+    todos = db.reference('usuarios').get()
+    if todos:
+        lista = [{"Nombre": v.get('nombre'), "Diamantes": v.get('Diamantes', 0)} for v in todos.values()]
+        lista_ordenada = sorted(lista, key=lambda x: x['Diamantes'], reverse=True)
+        st.table(lista_ordenada)
