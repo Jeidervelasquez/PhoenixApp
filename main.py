@@ -1,81 +1,111 @@
-
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
 
-# --- CONFIGURACIÓN ---
+# --- 1. CONFIGURACIÓN Y CONEXIÓN ---
 st.set_page_config(page_title="PHOENIX EMPIRE SYSTEM", layout="centered")
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate("llave.json")
-    firebase_admin.initialize_app(cred, {'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'})
+    try:
+        cred = credentials.Certificate("llave.json")
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'
+        })
+    except:
+        st.error("Error: No se encontró el archivo llave.json")
 
-# Estilo Phoenix
-st.markdown("<style>h1, h2 {color: #E74C3C; text-align: center;} .stButton>button {background-color: #E74C3C; color: white; border-radius:10px;}</style>", unsafe_allow_html=True)
+# Estilo visual (Rojo y Negro)
+st.markdown("<style>h1, h2 {color: #E74C3C; text-align: center;} .stButton>button {background-color: #E74C3C; color: white; width: 100%; border-radius:10px; font-weight: bold;}</style>", unsafe_allow_html=True)
 
-# --- LOGIN ---
+# --- 2. SISTEMA DE LOGIN Y REGISTRO ---
 if 'usuario' not in st.session_state:
     st.title("🔥 PHOENIX EMPIRE 🔥")
-    id_login = st.text_input("INGRESA TU ID DE GUERRERO", type="password")
-    if st.button("ACCEDER"):
-        res = db.reference(f'usuarios/{id_login}').get()
-        if res:
-            st.session_state['usuario'] = res
-            st.session_state['id_actual'] = id_login
-            st.rerun()
-        else:
-            st.error("ID no reconocido por el Imperio.")
+    tab_login, tab_registro = st.tabs(["INICIAR SESIÓN", "REGISTRARSE"])
+
+    with tab_login:
+        id_login = st.text_input("ID DE GUERRERO", key="id_log")
+        if st.button("ACCEDER AL SISTEMA"):
+            res = db.reference(f'usuarios/{id_login}').get()
+            if res:
+                st.session_state['usuario'] = res
+                st.session_state['id_actual'] = id_login
+                st.rerun()
+            else:
+                st.error("ID no registrado.")
+
+    with tab_registro:
+        st.subheader("📝 UNIRSE AL IMPERIO")
+        nuevo_id = st.text_input("Define tu ID")
+        nuevo_nombre = st.text_input("Tu Nombre/Nick")
+        if st.button("REGISTRARME"):
+            if nuevo_id and nuevo_nombre:
+                db.reference(f'usuarios/{nuevo_id}').set({
+                    'nombre': nuevo_nombre,
+                    'Diamantes': 0,
+                    'deuda': 0,
+                    'rol': 'Miembro'
+                })
+                st.success("¡Registro exitoso! Ya puedes iniciar sesión.")
+            else:
+                st.warning("Completa todos los campos.")
+
+# --- 3. PANEL DE CONTROL (DENTRO DEL SISTEMA) ---
 else:
     user = st.session_state['usuario']
-    rol = user.get('rol', 'Miembro') # Lee el rol de Firebase
-    
-    st.sidebar.title(f"Bienvenido, {user.get('nombre')}")
+    id_yo = st.session_state['id_actual']
+    # Recargar datos frescos de la DB
+    datos_frescos = db.reference(f'usuarios/{id_yo}').get()
+    rol = datos_frescos.get('rol', 'Miembro')
+
+    st.sidebar.title(f"👤 {datos_frescos.get('nombre')}")
     st.sidebar.write(f"Rango: **{rol}**")
     
-    # --- MENÚ SEGÚN ROL ---
-    opciones = ["Mi Perfil"]
+    opciones = ["📊 Mi Perfil", "🏆 Ranking"]
     if rol in ["Líder", "Moderador"]:
-        opciones.append("Gestionar Miembros")
+        opciones.append("⚒️ Gestionar Miembros")
     if rol == "Líder":
-        opciones.append("Panel de Administración")
+        opciones.append("👑 Panel de Control")
     
-    menu = st.sidebar.radio("Navegación", opciones)
+    menu = st.sidebar.radio("MENÚ", opciones)
 
-    # --- VISTA: MI PERFIL (Para todos) ---
-    if menu == "Mi Perfil":
+    # VISTA: MI PERFIL
+    if menu == "📊 Mi Perfil":
         st.title("🛡️ ESTADO DEL GUERRERO")
-        col1, col2 = st.columns(2)
-        col1.metric("💎 DIAMANTES", user.get('Diamantes', 0))
-        col2.metric("💰 DEUDA", user.get('deuda', 0))
-        
-    # --- VISTA: GESTIÓN (Moderadores y Líder) ---
-    elif menu == "Gestionar Miembros":
-        st.title("⚒️ CONTROL DE ESCUADRÓN")
-        id_edit = st.text_input("ID del Miembro a modificar")
-        cantidad = st.number_input("Cantidad", step=1)
-        
         c1, c2 = st.columns(2)
-        if c1.button("➕ SUMAR DIAMANTES"):
-            ref = db.reference(f'usuarios/{id_edit}')
+        c1.metric("💎 DIAMANTES", datos_frescos.get('Diamantes', 0))
+        c2.metric("💰 DEUDA", datos_frescos.get('deuda', 0))
+
+    # VISTA: GESTIÓN (MODERADORES Y LÍDER)
+    elif menu == "⚒️ Gestionar Miembros":
+        st.title("⚒️ GESTIÓN DE ESCUADRÓN")
+        id_target = st.text_input("ID del Miembro a modificar")
+        cantidad = st.number_input("Cantidad", min_value=1, step=1)
+        
+        col_d, col_v = st.columns(2)
+        if col_d.button("➕ SUMAR DIAMANTES"):
+            ref = db.reference(f'usuarios/{id_target}')
             u = ref.get()
             if u:
                 ref.update({"Diamantes": u.get('Diamantes', 0) + cantidad})
-                st.success("Diamantes sumados.")
-        if c2.button("➕ ANOTAR DEUDA"):
-            ref = db.reference(f'usuarios/{id_edit}')
+                st.success("Actualizado en la Base de Datos.")
+            else: st.error("ID no existe.")
+            
+        if col_v.button("➕ SUMAR DEUDA"):
+            ref = db.reference(f'usuarios/{id_target}')
             u = ref.get()
             if u:
                 ref.update({"deuda": u.get('deuda', 0) + cantidad})
-                st.success("Deuda actualizada.")
+                st.success("Deuda anotada.")
+            else: st.error("ID no existe.")
 
-    # --- VISTA: ADMIN (Solo Líder) ---
-    elif menu == "Panel de Administración":
-        st.title("👑 COMANDO CENTRAL")
-        st.write("Aquí puedes ver a todos los miembros y sus rangos.")
+    # VISTA: RANKING
+    elif menu == "🏆 Ranking":
+        st.title("🏆 TOP DIAMANTES")
         todos = db.reference('usuarios').get()
         if todos:
-            st.table([{"ID": k, "Nombre": v.get('nombre'), "Rol": v.get('rol')} for k, v in todos.items()])
+            lista = [{"Nombre": v.get('nombre'), "💎": v.get('Diamantes', 0)} for v in todos.values()]
+            st.table(sorted(lista, key=lambda x: x['💎'], reverse=True))
 
-    if st.sidebar.button("Cerrar Sesión"):
+    if st.sidebar.button("SALIR"):
         del st.session_state['usuario']
         st.rerun()
