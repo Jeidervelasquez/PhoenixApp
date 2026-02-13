@@ -1,137 +1,169 @@
-
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
+import time
 
-# --- 1. CONFIGURACIÓN Y ESTILO ---
-st.set_page_config(page_title="SISTEMA CENTRAL PHOENIX", layout="wide")
+# --- 1. CONFIGURACIÓN Y CONEXIÓN ---
+st.set_page_config(page_title="SISTEMA PHOENIX - JEIDER", layout="centered")
 
-# Estilo para que no se vea vacío y tenga los colores del clan
+if not firebase_admin._apps:
+    cred = credentials.Certificate("llave.json")
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'
+    })
+
+# --- 2. TU ID MAESTRO (PARA QUE TENGAS TODO EL CONTROL) ---
+ID_LIDER_MAESTRO = "PON_AQUI_TU_ID_REAL" 
+
+# --- 3. ESTILO VISUAL (Colores de tu programa CustomTkinter) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0e1117; color: white; }
-    h1, h2, h3 { color: #FF4B4B !important; text-align: center; }
-    .css-1r6slb0 { background-color: #1c1f26; border-radius: 10px; padding: 20px; border: 1px solid #FF4B4B; }
-    .stButton>button { background-color: #FF4B4B; color: white; width: 100%; border-radius: 5px; }
+    .stApp { background-color: #1a1a1a; color: white; }
+    .stButton>button { border-radius: 8px; font-weight: bold; height: 3em; border: none; }
+    /* Colores de botones según tu código de PC */
+    .btn-azul button { background-color: #1f538d !important; color: white; }
+    .btn-verde button { background-color: #2fa572 !important; color: white; }
+    .btn-gris button { background-color: #606060 !important; color: white; }
+    .btn-rojo button { background-color: #FF0000 !important; color: white; }
+    .btn-phoenix button { background-color: #E74C3C !important; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. CONEXIÓN ---
-if not firebase_admin._apps:
-    cred = credentials.Certificate("llave.json")
-    firebase_admin.initialize_app(cred, {'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'})
-
-# --- 3. TU ID MAESTRO ---
-ID_DEL_LIDER = "TU_ID_AQUÍ"  # <--- COLOCA TU ID AQUÍ
-
-# --- 4. LÓGICA DE LOGIN ---
+# --- 4. LÓGICA DE SESIÓN ---
 if 'usuario' not in st.session_state:
-    st.title("🔥 PHOENIX EMPIRE 🔥")
-    col1, col2 = st.tabs(["ACCESO", "NUEVO REGISTRO"])
-    with col1:
-        id_log = st.text_input("INGRESA TU ID")
-        if st.button("INICIAR SESIÓN"):
-            res = db.reference(f'usuarios/{id_log}').get()
-            if res:
-                st.session_state['usuario'] = res
-                st.session_state['id_actual'] = id_log
-                st.rerun()
-            else: st.error("ID no registrado.")
-    with col2:
-        n_id = st.text_input("ID Nuevo")
-        n_nom = st.text_input("Nombre de Jugador")
-        if st.button("REGISTRAR"):
-            db.reference(f'usuarios/{n_id}').set({'nombre': n_nom, 'Diamantes': 0, 'deuda': 0, 'rol': 'Miembro'})
-            st.success("Registrado.")
-
-# --- 5. INTERFAZ COMPLETA (Clon del Programa de PC) ---
+    st.markdown(f"<h1 style='color: #E74C3C;'>Phoenix Empire<br>escuadrón 🔥</h1>", unsafe_allow_html=True)
+    
+    with st.container():
+        id_input = st.text_input("ID de Jugador", placeholder="Ingresa tu ID")
+        if st.markdown('<div class="btn-phoenix">', unsafe_allow_html=True):
+            if st.button("ENTRAR"):
+                res = db.reference(f'usuarios/{id_input}').get()
+                if res:
+                    st.session_state['usuario'] = res
+                    st.session_state['id_actual'] = id_input
+                    st.rerun()
+                else:
+                    st.error("ID no registrado")
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
-    id_yo = st.session_state['id_actual']
-    # Sincronización real
-    datos = db.reference(f'usuarios/{id_yo}').get()
+    u_id = st.session_state['id_actual']
+    # Sincronización en tiempo real
+    datos = db.reference(f'usuarios/{u_id}').get()
     
-    # Determinar Rango (Prioridad a tu ID Maestro)
-    rol_real = "Líder" if str(id_yo) == ID_DEL_LIDER else datos.get('rol', 'Miembro')
+    # Lógica de Rol (Si es tu ID, eres Lider automáticamente)
+    rol = "Lider" if str(u_id) == ID_LIDER_MAESTRO else datos.get('rol', 'Miembro')
 
-    st.sidebar.title(f"👤 {datos.get('nombre')}")
-    st.sidebar.write(f"Rango: **{rol_real}**")
+    st.markdown(f"<h1 style='color: #3b8ed0;'>PANEL DE {rol.upper()}</h1>", unsafe_allow_html=True)
+    st.write(f"**Usuario:** {datos.get('nombre')}")
+
+    # --- BOTONES DEL MENÚ (IDÉNTICOS A TU PC) ---
     
-    menu = st.sidebar.selectbox("MENÚ DE COMANDO", 
-        ["ESTADO ACTUAL", "RANKING GENERAL", "MODIFICAR DIAMANTES", "MODIFICAR DEUDAS", "LISTA DE MIEMBROS", "BUSCADOR AVANZADO"])
+    if rol == "Lider":
+        col_lider = st.container()
+        with col_lider:
+            st.markdown('<div class="btn-azul">', unsafe_allow_html=True)
+            if st.button("📊 RANKING Y DEUDAS"): st.session_state['seccion'] = "ranking"
+            if st.button("📝 REGISTRAR MIEMBRO"): st.session_state['seccion'] = "registro"
+            if st.button("💎 GESTIONAR DIAMANTES"): st.session_state['seccion'] = "diamantes"
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="btn-gris">', unsafe_allow_html=True)
+            if st.button("🔧 CAMBIAR ID / CUENTAS"): st.session_state['seccion'] = "cambio_id"
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
+            if st.button("❌ ELIMINAR MIEMBRO"): st.session_state['seccion'] = "eliminar"
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- PANTALLA: ESTADO ACTUAL ---
-    if menu == "ESTADO ACTUAL":
-        st.title("🛡️ PANEL DE GUERRERO")
-        c1, c2 = st.columns(2)
-        with c1: st.metric("💎 MIS DIAMANTES", datos.get('Diamantes', 0))
-        with c2: st.metric("💰 MI DEUDA", datos.get('deuda', 0))
-        st.write("---")
-        st.info(f"Bienvenido de nuevo al sistema, {datos.get('nombre')}.")
+    if rol in ["Lider", "Moderador"]:
+        st.markdown('<div class="btn-azul">', unsafe_allow_html=True)
+        if st.button("📅 CREAR EVENTO"): st.session_state['seccion'] = "crear_evento"
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- PANTALLA: RANKING ---
-    elif menu == "RANKING GENERAL":
-        st.title("🏆 TOP DIAMANTES")
-        all_u = db.reference('usuarios').get()
-        if all_u:
-            # Convertimos a lista para ordenar
-            lista = [{"Nombre": v.get('nombre'), "Diamantes": v.get('Diamantes', 0)} for v in all_u.values()]
-            ranking = sorted(lista, key=lambda x: x['Diamantes'], reverse=True)
-            st.table(ranking)
+    st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
+    if st.button("📋 LISTA DEL CLAN"): st.session_state['seccion'] = "lista"
+    if st.button("🏆 EVENTOS Y PARTICIPAR"): st.session_state['seccion'] = "ver_eventos"
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- PANTALLA: GESTIÓN DE DIAMANTES ---
-    elif menu == "MODIFICAR DIAMANTES":
-        if rol_real in ["Líder", "Moderador"]:
-            st.title("⚒️ EDITOR DE DIAMANTES")
-            t_id = st.text_input("ID del Miembro")
-            cant = st.number_input("Cantidad", min_value=1, step=1)
-            col_a, col_b = st.columns(2)
-            if col_a.button("➕ SUMAR"):
-                ref = db.reference(f'usuarios/{t_id}')
-                u = ref.get()
-                if u: ref.update({"Diamantes": u.get('Diamantes', 0) + cant}); st.success("Actualizado")
-            if col_b.button("➖ RESTAR"):
-                ref = db.reference(f'usuarios/{t_id}')
-                u = ref.get()
-                if u: ref.update({"Diamantes": max(0, u.get('Diamantes', 0) - cant)}); st.success("Actualizado")
-        else: st.error("Acceso denegado.")
-
-    # --- PANTALLA: DEUDAS ---
-    elif menu == "MODIFICAR DEUDAS":
-        if rol_real in ["Líder", "Moderador"]:
-            st.title("💰 EDITOR DE DEUDAS")
-            d_id = st.text_input("ID del Miembro")
-            d_cant = st.number_input("Monto de Deuda", min_value=1)
-            if st.button("ACTUALIZAR DEUDA"):
-                ref = db.reference(f'usuarios/{d_id}')
-                u = ref.get()
-                if u: ref.update({"deuda": u.get('deuda', 0) + d_cant}); st.success("Deuda anotada")
-        else: st.error("Acceso denegado.")
-
-    # --- PANTALLA: LISTA DE MIEMBROS ---
-    elif menu == "LISTA DE MIEMBROS":
-        st.title("📋 REGISTRO DEL CLAN")
-        todos = db.reference('usuarios').get()
-        if todos:
-            for k, v in todos.items():
-                with st.expander(f"Guerrero: {v.get('nombre')} (ID: {k})"):
-                    st.write(f"Rol: {v.get('rol')}")
-                    st.write(f"Diamantes: {v.get('Diamantes')}")
-                    if rol_real == "Líder":
-                        if st.button(f"ELIMINAR MIEMBRO {k}"):
-                            db.reference(f'usuarios/{k}').delete()
-                            st.rerun()
-
-    # --- PANTALLA: BUSCADOR (Igual al del PC) ---
-    elif menu == "BUSCADOR AVANZADO":
-        st.title("🔍 BUSCADOR DE GUERREROS")
-        search_id = st.text_input("Ingresa el ID para ver todo el historial")
-        if search_id:
-            buscado = db.reference(f'usuarios/{search_id}').get()
-            if buscado:
-                st.subheader(f"Resultados para: {buscado.get('nombre')}")
-                st.json(buscado)
-            else: st.warning("No se encontró ese ID.")
-
-    if st.sidebar.button("SALIR DEL SISTEMA"):
+    st.markdown('<div class="btn-gris">', unsafe_allow_html=True)
+    if st.button("🚪 CERRAR SESIÓN"):
         del st.session_state['usuario']
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- LÓGICA DE LAS VENTANAS (CONTENIDO) ---
+    st.divider()
+    sec = st.session_state.get('seccion', 'inicio')
+
+    if sec == "ranking":
+        st.subheader("Ranking de Diamantes")
+        us = db.reference('usuarios').get()
+        if us:
+            lista = [{"Nombre": v.get('nombre'), "💎": v.get('Diamantes', 0), "💰": v.get('deuda', 0)} for v in us.values()]
+            st.table(sorted(lista, key=lambda x: x['💎'], reverse=True))
+
+    elif sec == "registro":
+        st.subheader("Registrar Guerrero")
+        r_id = st.text_input("Nuevo ID")
+        r_nom = st.text_input("Nombre")
+        r_rol = st.selectbox("Rol", ["Miembro", "Moderador", "Lider"])
+        if st.button("Guardar en el Imperio"):
+            db.reference(f'usuarios/{r_id}').set({'nombre': r_nom, 'rol': r_rol, 'Diamantes': 0, 'deuda': 0})
+            st.success("¡Registrado!")
+
+    elif sec == "diamantes":
+        st.subheader("Gestión de Saldo")
+        target = st.text_input("ID Jugador")
+        cant = st.number_input("Cantidad", min_value=1)
+        if st.button("Entregar Diamantes"):
+            ref = db.reference(f'usuarios/{target}')
+            u = ref.get()
+            if u: ref.update({'Diamantes': u.get('Diamantes', 0) + cant}); st.success("💎 Entregados")
+        if st.button("Anotar Deuda"):
+            ref = db.reference(f'usuarios/{target}')
+            u = ref.get()
+            if u: ref.update({'deuda': u.get('deuda', 0) + cant}); st.warning("💰 Deuda anotada")
+
+    elif sec == "cambio_id":
+        st.subheader("Traspaso de Cuentas")
+        old_id = st.text_input("ID Antiguo")
+        new_id = st.text_input("ID Nuevo")
+        if st.button("Confirmar Traspaso"):
+            ref = db.reference(f'usuarios/{old_id}')
+            data = ref.get()
+            if data:
+                db.reference(f'usuarios/{new_id}').set(data)
+                ref.delete()
+                st.success("ID cambiado correctamente")
+
+    elif sec == "eliminar":
+        st.subheader("Desterrar Miembro")
+        e_id = st.text_input("ID a eliminar")
+        if st.button("ELIMINAR DEFINITIVAMENTE", help="¡Cuidado!"):
+            db.reference(f'usuarios/{e_id}').delete()
+            st.error("Miembro eliminado")
+
+    elif sec == "crear_evento":
+        st.subheader("Nuevo Evento 🔥")
+        e_tit = st.text_input("Nombre del Evento")
+        e_fec = st.text_input("Fecha y Hora")
+        e_desc = st.text_area("Descripción")
+        if st.button("Publicar"):
+            db.reference('eventos').push().set({'nombre': e_tit, 'fecha': e_fec, 'descripcion': e_desc})
+            st.success("Evento publicado")
+
+    elif sec == "lista":
+        st.subheader("Lista del Clan")
+        us = db.reference('usuarios').get()
+        if us:
+            for uid, info in us.items():
+                st.write(f"ID: `{uid}` | **{info.get('nombre')}** - *{info.get('rol')}*")
+
+    elif sec == "ver_eventos":
+        st.subheader("Eventos Disponibles")
+        evs = db.reference('eventos').get()
+        if evs:
+            for eid, info in evs.items():
+                with st.expander(f"🔥 {info['nombre']} - {info['fecha']}"):
+                    st.write(info.get('descripcion'))
+                    if st.button("Participar", key=eid): st.success("¡Te has unido!")
