@@ -3,64 +3,105 @@ import firebase_admin
 from firebase_admin import credentials, db
 import base64
 
-# --- 1. CONFIGURACIÓN ---
-st.set_page_config(page_title="PHOENIX EMPIRE TOTAL", layout="centered")
+# --- 1. CONFIGURACIÓN DE PÁGINA (FORZAR TEMA OSCURO) ---
+st.set_page_config(
+    page_title="PHOENIX EMPIRE TOTAL", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# --- 2. FUNCIÓN PARA FONDO ---
+# --- 2. FUNCIÓN PARA FONDO (MEJORADA) ---
 def set_bg_hack(main_bg):
-    st.markdown(
-         f"""
-         <style>
-         .stApp {{
-             background: url(data:image/png;base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
-             background-size: cover;
-             background-position: center;
-             background-repeat: no-repeat;
-             background-attachment: fixed;
-         }}
-         </style>
-         """,
-         unsafe_allow_html=True
-     )
+    try:
+        with open(main_bg, "rb") as f:
+            data = f.read()
+        bin_str = base64.b64encode(data).decode()
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(data:image/png;base64,{bin_str});
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+    except:
+        st.markdown("<style>.stApp {background-color: #0E1117;}</style>", unsafe_allow_html=True)
 
-try: set_bg_hack('fondo.jpg') 
-except: pass
+set_bg_hack('fondo.jpg')
 
-# --- 3. CONEXIÓN ---
+# --- 3. CONEXIÓN A FIREBASE ---
 if not firebase_admin._apps:
     try:
         cred = credentials.Certificate("llave.json")
         firebase_admin.initialize_app(cred, {'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'})
-    except: pass
+    except:
+        st.error("Error al conectar con la llave de Firebase.")
 
 # --- TU ID MAESTRO ---
-ID_LIDER_MAESTRO = "PON_TU_ID_AQUI" 
+ID_LIDER_MAESTRO = "1234"  # CAMBIA ESTO POR TU ID REAL
 
-# --- ESTILOS ---
+# --- 4. ESTILOS CSS "BLINDADOS" (Para que no pierda color) ---
 st.markdown("""
     <style>
-    h1, h2, h3, p, div, span, label { color: white !important; text-shadow: 2px 2px 4px #000000; }
-    .stButton>button { border-radius: 8px; font-weight: bold; height: 3.5em; width: 100%; border: 1px solid white; margin-bottom: 10px; }
-    .card { background-color: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px; border: 1px solid #E74C3C; margin-bottom: 10px; }
-    div.row-widget.stButton > button[kind="primary"] { background-color: #1f538d; }
-    .btn-azul button { background-color: rgba(31, 83, 141, 0.9) !important; color: white; }
-    .btn-verde button { background-color: rgba(47, 165, 114, 0.9) !important; color: white; }
-    .btn-gris button { background-color: rgba(96, 96, 96, 0.9) !important; color: white; }
-    .btn-rojo button { background-color: rgba(255, 0, 0, 0.8) !important; color: white; }
-    .btn-volver button { background-color: rgba(50, 50, 50, 0.9) !important; border: 1px solid white; color: white; }
-    .stTextInput > div > div > input { color: white; background-color: rgba(0,0,0,0.8); }
+    /* Forzar color de texto en toda la app */
+    h1, h2, h3, p, div, span, label, .stMarkdown { 
+        color: white !important; 
+        text-shadow: 2px 2px 4px #000000 !important; 
+    }
+    
+    /* Estilo de las tarjetas */
+    .card { 
+        background-color: rgba(0, 0, 0, 0.8) !important; 
+        padding: 20px; 
+        border-radius: 12px; 
+        border: 2px solid #E74C3C !important; 
+        margin-bottom: 15px; 
+        box-shadow: 0px 4px 15px rgba(231, 76, 60, 0.3);
+    }
+
+    /* Botones generales */
+    .stButton>button { 
+        border-radius: 10px !important; 
+        font-weight: bold !important; 
+        height: 3.5em; 
+        width: 100%; 
+        border: 1px solid white !important;
+        transition: 0.3s;
+    }
+
+    /* Colores específicos de botones usando Clases */
+    div[data-testid="stVerticalBlock"] > div:nth-child(1) .btn-azul button { background-color: #1f538d !important; }
+    .btn-azul button { background-color: #1f538d !important; color: white !important; }
+    .btn-verde button { background-color: #2fa572 !important; color: white !important; }
+    .btn-gris button { background-color: #606060 !important; color: white !important; }
+    .btn-rojo button { background-color: #FF0000 !important; color: white !important; }
+    .btn-volver button { background-color: #333333 !important; border: 2px solid #E74C3C !important; }
+
+    /* Inputs */
+    .stTextInput > div > div > input { 
+        color: white !important; 
+        background-color: rgba(255,255,255,0.1) !important; 
+        border: 1px solid #E74C3C !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 # --- NAVEGACIÓN ---
 if 'pagina' not in st.session_state: st.session_state['pagina'] = 'login'
-def ir_a(pag): st.session_state['pagina'] = pag; st.rerun()
+def ir_a(pag): 
+    st.session_state['pagina'] = pag
+    st.rerun()
 
 # ==========================================
 # 1. LOGIN
 # ==========================================
 if st.session_state['pagina'] == 'login':
-    st.markdown("<h1 style='color: #E74C3C; text-shadow: 3px 3px 0px #000;'>PHOENIX EMPIRE<br>ESCUADRÓN 🔥</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #E74C3C;'>PHOENIX EMPIRE<br>ESCUADRÓN 🔥</h1>", unsafe_allow_html=True)
     with st.container():
         st.markdown('<div class="card">', unsafe_allow_html=True)
         id_input = st.text_input("INGRESA TU ID DE JUGADOR")
@@ -71,30 +112,31 @@ if st.session_state['pagina'] == 'login':
                     st.session_state['usuario'] = res
                     st.session_state['id_actual'] = id_input
                     ir_a('menu')
-                else: st.error("ID no encontrado.")
+                else: st.error("ID no encontrado en la base de datos.")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. MENÚ
+# 2. MENÚ PRINCIPAL
 # ==========================================
 elif st.session_state['pagina'] == 'menu':
     u = st.session_state['usuario']
     my_id = st.session_state['id_actual']
     rol = "Lider" if str(my_id) == ID_LIDER_MAESTRO else u.get('rol', 'Miembro')
 
-    st.markdown(f"<div class='card'><h2 style='color: #3b8ed0; margin:0;'>PANEL DE CONTROL: {rol.upper()}</h2><p style='text-align:center;'>Guerrero: <b>{u.get('nombre')}</b></p></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card'><h2 style='color: #3b8ed0; text-align:center;'>PANEL: {rol.upper()}</h2><p style='text-align:center;'>Bienvenido, <b>{u.get('nombre')}</b></p></div>", unsafe_allow_html=True)
 
     if rol == "Lider":
-        st.markdown("### 🛠️ GESTIÓN")
+        st.markdown("### 🛠️ GESTIÓN SUPERIOR")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("📊 RANKING"): ir_a('ranking')
-            if st.button("💎 DIAMANTES/DEUDA"): ir_a('diamantes')
-            if st.button("⚠️ SANCIONES (NUEVO)"): ir_a('sanciones')
+            if st.button("💎 TESORERÍA"): ir_a('diamantes')
+            if st.button("⚠️ SANCIONES"): ir_a('sanciones')
         with col2:
             if st.button("📝 REGISTRAR"): ir_a('registro')
             if st.button("🔧 CAMBIAR ID"): ir_a('cambio_id')
             if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
+        
         st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
         if st.button("❌ ELIMINAR MIEMBRO"): ir_a('eliminar')
         st.markdown('</div>', unsafe_allow_html=True)
@@ -102,20 +144,19 @@ elif st.session_state['pagina'] == 'menu':
     elif rol == "Moderador":
         if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
         if st.button("💎 GESTIONAR DIAMANTES"): ir_a('diamantes')
-    
-    st.markdown("### 🌎 CLAN")
+
+    st.markdown("### 🌎 COMUNIDAD")
     st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
     if st.button("📋 LISTA DE MIEMBROS"): ir_a('lista')
     if st.button("🏆 VER EVENTOS"): ir_a('ver_eventos')
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("---")
     st.markdown('<div class="btn-gris">', unsafe_allow_html=True)
     if st.button("🚪 CERRAR SESIÓN"): ir_a('login')
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 3. FUNCIONES
+# 3. PÁGINAS INTERNAS
 # ==========================================
 else:
     st.markdown('<div class="btn-volver">', unsafe_allow_html=True)
@@ -124,116 +165,70 @@ else:
     
     pag = st.session_state['pagina']
 
-    # --- RANKING (Protegido contra errores) ---
     if pag == 'ranking':
-        st.header("🏆 RANKING Y DEUDAS")
+        st.header("🏆 TOP GUERREROS")
         data = db.reference('usuarios').get()
         if data:
-            lista = []
-            for k, v in data.items():
-                if isinstance(v, dict): # Solo si es un diccionario válido
-                    lista.append({
-                        "Nombre": v.get('nombre', 'Desconocido'), 
-                        "💎": v.get('Diamantes',0), 
-                        "💰": v.get('deuda',0)
-                    })
-            st.markdown('<div class="card">', unsafe_allow_html=True)
+            lista = [{"Nombre": v.get('nombre'), "💎": v.get('Diamantes',0), "💰 Deuda": v.get('deuda',0)} 
+                    for k, v in data.items() if isinstance(v, dict)]
             st.table(sorted(lista, key=lambda x: x['💎'], reverse=True))
-            st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- LISTA (¡AQUÍ ESTABA EL ERROR!) ---
     elif pag == 'lista':
-        st.header("📋 LISTA DEL CLAN")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.header("📋 INTEGRANTES")
         all_u = db.reference('usuarios').get()
         if all_u:
             for k, v in all_u.items():
-                if isinstance(v, dict): # Protección anti-errores
-                    nombre = v.get('nombre', 'Sin Nombre')
-                    rol_u = v.get('rol', 'Miembro')
-                    sanc = v.get('sanciones', 0)
-                    st.write(f"🆔 `{k}` | 👤 **{nombre}** | 🛡️ {rol_u} | ⚠️ {sanc}")
-                    st.markdown("<hr style='margin: 5px 0; border-color: #555;'>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+                if isinstance(v, dict):
+                    st.markdown(f"""<div class="card">
+                    ID: `{k}` | **{v.get('nombre')}** | Rango: {v.get('rol')}<br>
+                    💎 {v.get('Diamantes')} | ⚠️ Sanciones: {v.get('sanciones')}
+                    </div>""", unsafe_allow_html=True)
 
-    # --- OTRAS FUNCIONES ---
     elif pag == 'diamantes':
-        st.header("💎 GESTIÓN DE TESORERÍA")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        target = st.text_input("ID del Jugador")
-        cant = st.number_input("Cantidad", step=1, min_value=1)
-        c1, c2 = st.columns(2)
-        if c1.button("➕ SUMAR DIAMANTES"):
-            ref = db.reference(f'usuarios/{target}')
-            if ref.get(): 
-                ref.update({'Diamantes': ref.get().get('Diamantes',0) + cant})
-                st.success("Hecho")
-            else: st.error("ID no existe")
-        if c2.button("➕ ANOTAR DEUDA"):
-            ref = db.reference(f'usuarios/{target}')
-            if ref.get(): 
-                ref.update({'deuda': ref.get().get('deuda',0) + cant})
-                st.warning("Hecho")
-            else: st.error("ID no existe")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.header("💎 TESORERÍA")
+        with st.form("tesoro"):
+            target = st.text_input("ID del Jugador")
+            cant = st.number_input("Cantidad", step=1)
+            c1, c2 = st.columns(2)
+            sub1 = c1.form_submit_button("➕ SUMAR DIAMANTES")
+            sub2 = c2.form_submit_button("➕ ANOTAR DEUDA")
+            if sub1 or sub2:
+                ref = db.reference(f'usuarios/{target}')
+                u = ref.get()
+                if u:
+                    if sub1: ref.update({'Diamantes': u.get('Diamantes',0) + cant})
+                    if sub2: ref.update({'deuda': u.get('deuda',0) + cant})
+                    st.success("Operación realizada")
+                else: st.error("No existe el ID")
+
+    elif pag == 'ver_eventos':
+        st.header("🏆 EVENTOS ACTIVOS")
+        evs = db.reference('eventos').get()
+        if evs:
+            for eid, info in evs.items():
+                st.markdown(f"""<div class="card">
+                <h3>🔥 {info.get('nombre')}</h3>
+                <p>📅 <b>Fecha:</b> {info.get('fecha')}</p>
+                <p>{info.get('descripcion')}</p>
+                </div>""", unsafe_allow_html=True)
+        else: st.info("No hay eventos programados.")
 
     elif pag == 'sanciones':
-        st.header("⚠️ SANCIONES")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        s_id = st.text_input("ID Infractor")
-        if st.button("APLICAR SANCIÓN (+1)"):
+        st.header("⚠️ APLICAR SANCIÓN")
+        s_id = st.text_input("ID del Infractor")
+        if st.button("MULTAR (+1 Sanción)"):
             ref = db.reference(f'usuarios/{s_id}')
             u = ref.get()
             if u:
                 ref.update({'sanciones': u.get('sanciones', 0) + 1})
-                st.error(f"Sanción aplicada a {u.get('nombre')}")
-        st.markdown('</div>', unsafe_allow_html=True)
+                st.error(f"Sanción registrada para {u.get('nombre')}")
 
     elif pag == 'registro':
-        st.header("📝 REGISTRO")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        r_id = st.text_input("ID Nuevo")
-        r_nom = st.text_input("Nombre")
-        r_rol = st.selectbox("Rol", ["Miembro", "Moderador", "Lider"])
-        if st.button("GUARDAR"):
-            db.reference(f'usuarios/{r_id}').set({'nombre': r_nom, 'rol': r_rol, 'Diamantes': 0, 'deuda': 0, 'sanciones': 0})
-            st.success("Listo")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif pag == 'cambio_id':
-        st.header("🔧 CAMBIO ID")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        old = st.text_input("ID Viejo"); new = st.text_input("ID Nuevo")
-        if st.button("CAMBIAR"):
-            d = db.reference(f'usuarios/{old}').get()
-            if d:
-                db.reference(f'usuarios/{new}').set(d)
-                db.reference(f'usuarios/{old}').delete()
-                st.success("Cambiado")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif pag == 'eliminar':
-        st.header("❌ ELIMINAR")
-        st.markdown('<div class="card" style="border-color:red;">', unsafe_allow_html=True)
-        d_id = st.text_input("ID a borrar")
-        if st.button("BORRAR DEFINITIVAMENTE"):
-            db.reference(f'usuarios/{d_id}').delete()
-            st.warning("Eliminado")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif pag == 'crear_evento':
-        st.header("📅 CREAR EVENTO")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        t = st.text_input("Título"); f = st.text_input("Fecha"); d = st.text_area("Info")
-        if st.button("PUBLICAR"):
-            db.reference('eventos').push().set({'nombre': t, 'fecha': f, 'descripcion': d})
-            st.success("Publicado")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif pag == 'ver_eventos':
-        st.header("🏆 EVENTOS")
-        evs = db.reference('eventos').get()
-        if evs:
-            for eid, info in evs.items():
-                st.markdown(f"<div class='card'><h3>{info['nombre']}</h3><p>{info['fecha']}</p><p>{info['descripcion']}</p></div>", unsafe_allow_html=True)
-                if st.button("Asistiré", key=eid): st.success("Anotado")
+        st.header("📝 REGISTRAR")
+        with st.form("reg"):
+            r_id = st.text_input("ID Nuevo")
+            r_nom = st.text_input("Nombre")
+            r_rol = st.selectbox("Rol", ["Miembro", "Moderador", "Lider"])
+            if st.form_submit_button("GUARDAR EN FIREBASE"):
+                db.reference(f'usuarios/{r_id}').set({'nombre': r_nom, 'rol': r_rol, 'Diamantes': 0, 'deuda': 0, 'sanciones': 0})
+                st.success("Usuario Creado")
