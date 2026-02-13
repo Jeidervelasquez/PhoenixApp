@@ -1,132 +1,239 @@
-
-import customtkinter as ctk
-from tkinter import messagebox
+import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
-import os
-import sys
+import base64
 
-# --- 1. CONFIGURACIÓN DE RUTA ---
-def recurso_ruta(relative_path):
-    try: base_path = sys._MEIPASS
-    except Exception: base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+# --- 1. CONFIGURACIÓN ---
+st.set_page_config(page_title="PHOENIX EMPIRE TOTAL", layout="centered")
 
-# --- 2. CONEXIÓN A FIREBASE ---
-ruta_llave = recurso_ruta("llave.json")
+# --- 2. FUNCIÓN PARA FONDO ---
+def set_bg_hack(main_bg):
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background: url(data:image/png;base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
+             background-size: cover;
+             background-position: center;
+             background-repeat: no-repeat;
+             background-attachment: fixed;
+         }}
+         </style>
+         """,
+         unsafe_allow_html=True
+     )
+
+try: set_bg_hack('fondo.jpg') 
+except: pass
+
+# --- 3. CONEXIÓN ---
 if not firebase_admin._apps:
     try:
-        cred = credentials.Certificate(ruta_llave)
+        cred = credentials.Certificate("llave.json")
         firebase_admin.initialize_app(cred, {'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'})
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo conectar: {e}")
+    except: pass
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+# --- TU ID MAESTRO ---
+ID_LIDER_MAESTRO = "PON_TU_ID_AQUI" 
 
-class AppEscuadron(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("PHOENIX EMPIRE - RECOVERY MODE")
-        self.geometry("600x850")
-        self.usuario_actual = {}
-        self.mostrar_login()
+# --- ESTILOS ---
+st.markdown("""
+    <style>
+    h1, h2, h3, p, div, span, label { color: white !important; text-shadow: 2px 2px 4px #000000; }
+    .stButton>button { border-radius: 8px; font-weight: bold; height: 3.5em; width: 100%; border: 1px solid white; margin-bottom: 10px; }
+    .card { background-color: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px; border: 1px solid #E74C3C; margin-bottom: 10px; }
+    div.row-widget.stButton > button[kind="primary"] { background-color: #1f538d; }
+    .btn-azul button { background-color: rgba(31, 83, 141, 0.9) !important; color: white; }
+    .btn-verde button { background-color: rgba(47, 165, 114, 0.9) !important; color: white; }
+    .btn-gris button { background-color: rgba(96, 96, 96, 0.9) !important; color: white; }
+    .btn-rojo button { background-color: rgba(255, 0, 0, 0.8) !important; color: white; }
+    .btn-volver button { background-color: rgba(50, 50, 50, 0.9) !important; border: 1px solid white; color: white; }
+    .stTextInput > div > div > input { color: white; background-color: rgba(0,0,0,0.8); }
+    </style>
+    """, unsafe_allow_html=True)
 
-    def limpiar_pantalla(self):
-        for widget in self.winfo_children(): widget.destroy()
+# --- NAVEGACIÓN ---
+if 'pagina' not in st.session_state: st.session_state['pagina'] = 'login'
+def ir_a(pag): st.session_state['pagina'] = pag; st.rerun()
 
-    # --- FUNCIÓN MAESTRA: RECONSTRUIR ENTIDADES ---
-    def reparar_base_datos(self):
-        try:
-            # Esto crea la estructura exacta que perdiste
-            admin_id = "1234"
-            db.reference(f'usuarios/{admin_id}').set({
-                'nombre': "Yosbel (Lider)",
-                'rol': "Lider",
-                'Diamantes': 0,
-                'deuda': 0,
-                'sanciones': 0
-            })
-            messagebox.showinfo("Éxito", "¡Entidades reconstruidas! Ya puedes entrar con el ID 1234")
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo reparar: {e}")
+# ==========================================
+# 1. LOGIN
+# ==========================================
+if st.session_state['pagina'] == 'login':
+    st.markdown("<h1 style='color: #E74C3C; text-shadow: 3px 3px 0px #000;'>PHOENIX EMPIRE<br>ESCUADRÓN 🔥</h1>", unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        id_input = st.text_input("INGRESA TU ID DE JUGADOR")
+        if st.button("ENTRAR AL SISTEMA"):
+            if id_input:
+                res = db.reference(f'usuarios/{id_input}').get()
+                if res:
+                    st.session_state['usuario'] = res
+                    st.session_state['id_actual'] = id_input
+                    ir_a('menu')
+                else: st.error("ID no encontrado.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    def mostrar_login(self):
-        self.limpiar_pantalla()
-        self.frame_login = ctk.CTkFrame(self, border_width=2, border_color="#E74C3C")
-        self.frame_login.pack(pady=60, padx=40, fill="both", expand=True)
-        
-        ctk.CTkLabel(self.frame_login, text="Phoenix Empire\nescuadrón 🔥", 
-                     font=("Roboto", 35, "bold"), text_color="#E74C3C").pack(pady=40)
-        
-        self.entry_id = ctk.CTkEntry(self.frame_login, placeholder_text="ID de Jugador", 
-                                     width=280, height=45, border_color="#E74C3C")
-        self.entry_id.pack(pady=10)
-        
-        ctk.CTkButton(self.frame_login, text="ENTRAR", command=self.verificar_acceso, 
-                      height=50, width=200, fg_color="#E74C3C", hover_color="#C0392B").pack(pady=20)
+# ==========================================
+# 2. MENÚ
+# ==========================================
+elif st.session_state['pagina'] == 'menu':
+    u = st.session_state['usuario']
+    my_id = st.session_state['id_actual']
+    rol = "Lider" if str(my_id) == ID_LIDER_MAESTRO else u.get('rol', 'Miembro')
 
-        # BOTÓN DE EMERGENCIA (Usa esto una sola vez)
-        ctk.CTkButton(self.frame_login, text="🛠 REPARAR ENTIDADES", command=self.reparar_base_datos, 
-                      fg_color="transparent", border_width=1, text_color="gray").pack(pady=10)
+    st.markdown(f"<div class='card'><h2 style='color: #3b8ed0; margin:0;'>PANEL DE CONTROL: {rol.upper()}</h2><p style='text-align:center;'>Guerrero: <b>{u.get('nombre')}</b></p></div>", unsafe_allow_html=True)
 
-    def verificar_acceso(self):
-        mi_id = self.entry_id.get().strip()
-        if not mi_id: return
-        try:
-            # Buscamos en 'usuarios' (en minúsculas para evitar errores)
-            u = db.reference(f'usuarios/{mi_id}').get()
+    if rol == "Lider":
+        st.markdown("### 🛠️ GESTIÓN")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📊 RANKING"): ir_a('ranking')
+            if st.button("💎 DIAMANTES/DEUDA"): ir_a('diamantes')
+            if st.button("⚠️ SANCIONES (NUEVO)"): ir_a('sanciones')
+        with col2:
+            if st.button("📝 REGISTRAR"): ir_a('registro')
+            if st.button("🔧 CAMBIAR ID"): ir_a('cambio_id')
+            if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
+        st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
+        if st.button("❌ ELIMINAR MIEMBRO"): ir_a('eliminar')
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    elif rol == "Moderador":
+        if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
+        if st.button("💎 GESTIONAR DIAMANTES"): ir_a('diamantes')
+    
+    st.markdown("### 🌎 CLAN")
+    st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
+    if st.button("📋 LISTA DE MIEMBROS"): ir_a('lista')
+    if st.button("🏆 VER EVENTOS"): ir_a('ver_eventos')
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown('<div class="btn-gris">', unsafe_allow_html=True)
+    if st.button("🚪 CERRAR SESIÓN"): ir_a('login')
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ==========================================
+# 3. FUNCIONES
+# ==========================================
+else:
+    st.markdown('<div class="btn-volver">', unsafe_allow_html=True)
+    if st.button("⬅️ VOLVER AL MENÚ"): ir_a('menu')
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    pag = st.session_state['pagina']
+
+    # --- RANKING (Protegido contra errores) ---
+    if pag == 'ranking':
+        st.header("🏆 RANKING Y DEUDAS")
+        data = db.reference('usuarios').get()
+        if data:
+            lista = []
+            for k, v in data.items():
+                if isinstance(v, dict): # Solo si es un diccionario válido
+                    lista.append({
+                        "Nombre": v.get('nombre', 'Desconocido'), 
+                        "💎": v.get('Diamantes',0), 
+                        "💰": v.get('deuda',0)
+                    })
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.table(sorted(lista, key=lambda x: x['💎'], reverse=True))
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- LISTA (¡AQUÍ ESTABA EL ERROR!) ---
+    elif pag == 'lista':
+        st.header("📋 LISTA DEL CLAN")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        all_u = db.reference('usuarios').get()
+        if all_u:
+            for k, v in all_u.items():
+                if isinstance(v, dict): # Protección anti-errores
+                    nombre = v.get('nombre', 'Sin Nombre')
+                    rol_u = v.get('rol', 'Miembro')
+                    sanc = v.get('sanciones', 0)
+                    st.write(f"🆔 `{k}` | 👤 **{nombre}** | 🛡️ {rol_u} | ⚠️ {sanc}")
+                    st.markdown("<hr style='margin: 5px 0; border-color: #555;'>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- OTRAS FUNCIONES ---
+    elif pag == 'diamantes':
+        st.header("💎 GESTIÓN DE TESORERÍA")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        target = st.text_input("ID del Jugador")
+        cant = st.number_input("Cantidad", step=1, min_value=1)
+        c1, c2 = st.columns(2)
+        if c1.button("➕ SUMAR DIAMANTES"):
+            ref = db.reference(f'usuarios/{target}')
+            if ref.get(): 
+                ref.update({'Diamantes': ref.get().get('Diamantes',0) + cant})
+                st.success("Hecho")
+            else: st.error("ID no existe")
+        if c2.button("➕ ANOTAR DEUDA"):
+            ref = db.reference(f'usuarios/{target}')
+            if ref.get(): 
+                ref.update({'deuda': ref.get().get('deuda',0) + cant})
+                st.warning("Hecho")
+            else: st.error("ID no existe")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    elif pag == 'sanciones':
+        st.header("⚠️ SANCIONES")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        s_id = st.text_input("ID Infractor")
+        if st.button("APLICAR SANCIÓN (+1)"):
+            ref = db.reference(f'usuarios/{s_id}')
+            u = ref.get()
             if u:
-                self.usuario_actual = {'id': mi_id, 'nombre': u.get('nombre'), 'rol': u.get('rol')}
-                self.mostrar_menu_principal()
-            else: 
-                messagebox.showerror("Error", "ID no encontrado. Dale al botón 'REPARAR' si la base está vacía.")
-        except: 
-            messagebox.showerror("Error", "Error de conexión")
+                ref.update({'sanciones': u.get('sanciones', 0) + 1})
+                st.error(f"Sanción aplicada a {u.get('nombre')}")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    def mostrar_menu_principal(self):
-        self.limpiar_pantalla()
-        u = self.usuario_actual
-        ctk.CTkLabel(self, text="PANEL DE LIDER", font=("Roboto", 35, "bold"), text_color="#3b8ed0").pack(pady=20)
-        ctk.CTkLabel(self, text=f"Usuario: {u['nombre']}", font=("Roboto", 22)).pack(pady=5)
+    elif pag == 'registro':
+        st.header("📝 REGISTRO")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        r_id = st.text_input("ID Nuevo")
+        r_nom = st.text_input("Nombre")
+        r_rol = st.selectbox("Rol", ["Miembro", "Moderador", "Lider"])
+        if st.button("GUARDAR"):
+            db.reference(f'usuarios/{r_id}').set({'nombre': r_nom, 'rol': r_rol, 'Diamantes': 0, 'deuda': 0, 'sanciones': 0})
+            st.success("Listo")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        # Botón para registrar a otros (esto crea la estructura completa para cada uno)
-        if u['rol'] == "Lider":
-            self.crear_boton("📝 REGISTRAR NUEVO MIEMBRO", self.abrir_registro, "#1f538d")
-            self.crear_boton("📊 RANKING Y DEUDAS", self.abrir_ranking, "#1f538d")
-            self.crear_boton("❌ ELIMINAR MIEMBRO", self.abrir_eliminar, "#FF0000")
+    elif pag == 'cambio_id':
+        st.header("🔧 CAMBIO ID")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        old = st.text_input("ID Viejo"); new = st.text_input("ID Nuevo")
+        if st.button("CAMBIAR"):
+            d = db.reference(f'usuarios/{old}').get()
+            if d:
+                db.reference(f'usuarios/{new}').set(d)
+                db.reference(f'usuarios/{old}').delete()
+                st.success("Cambiado")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        self.crear_boton("🚪 CERRAR SESIÓN", self.mostrar_login, "#606060")
+    elif pag == 'eliminar':
+        st.header("❌ ELIMINAR")
+        st.markdown('<div class="card" style="border-color:red;">', unsafe_allow_html=True)
+        d_id = st.text_input("ID a borrar")
+        if st.button("BORRAR DEFINITIVAMENTE"):
+            db.reference(f'usuarios/{d_id}').delete()
+            st.warning("Eliminado")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    def crear_boton(self, texto, comando, color):
-        btn = ctk.CTkButton(self, text=texto, command=comando, fg_color=color, height=50, font=("bold", 15))
-        btn.pack(pady=7, padx=60, fill="x")
+    elif pag == 'crear_evento':
+        st.header("📅 CREAR EVENTO")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        t = st.text_input("Título"); f = st.text_input("Fecha"); d = st.text_area("Info")
+        if st.button("PUBLICAR"):
+            db.reference('eventos').push().set({'nombre': t, 'fecha': f, 'descripcion': d})
+            st.success("Publicado")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    def abrir_registro(self):
-        v = ctk.CTkToplevel(self); v.geometry("400x450"); v.attributes("-topmost", True)
-        ctk.CTkLabel(v, text="Registrar Guerrero", font=("bold", 20), text_color="#E74C3C").pack(pady=20)
-        id_n = ctk.CTkEntry(v, placeholder_text="Nuevo ID", width=250); id_n.pack(pady=10)
-        nom = ctk.CTkEntry(v, placeholder_text="Nombre", width=250); nom.pack(pady=10)
-        rol = ctk.CTkOptionMenu(v, values=["Miembro", "Moderador", "Lider"], fg_color="#E74C3C"); rol.pack(pady=10)
-        
-        def reg():
-            # Esta es la parte que "repite" la estructura por cada miembro
-            db.reference(f'usuarios/{id_n.get().strip()}').set({
-                'nombre': nom.get(),
-                'rol': rol.get(),
-                'Diamantes': 0,
-                'deuda': 0,
-                'sanciones': 0
-            })
-            messagebox.showinfo("Éxito", "Guerrero registrado")
-            v.destroy()
-        
-        ctk.CTkButton(v, text="Guardar en el Imperio", command=reg, fg_color="#E74C3C").pack(pady=30)
-
-    # (Las demás funciones Ranking y Eliminar se mantienen igual)
-    def abrir_ranking(self): pass
-    def abrir_eliminar(self): pass
-
-if __name__ == "__main__":
-    app = AppEscuadron()
-    app.mainloop()
+    elif pag == 'ver_eventos':
+        st.header("🏆 EVENTOS")
+        evs = db.reference('eventos').get()
+        if evs:
+            for eid, info in evs.items():
+                st.markdown(f"<div class='card'><h3>{info['nombre']}</h3><p>{info['fecha']}</p><p>{info['descripcion']}</p></div>", unsafe_allow_html=True)
+                if st.button("Asistiré", key=eid): st.success("Anotado")
