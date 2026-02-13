@@ -9,7 +9,7 @@ import base64
 st.set_page_config(page_title="PHOENIX EMPIRE - CONTROL", layout="centered")
 
 # --- TU LLAVE MAESTRA (¡PON TU ID AQUÍ!) ---
-ID_LIDER_MAESTRO = "PON_TU_ID_AQUI" 
+ID_LIDER_MAESTRO = 12345 
 
 # --- CONEXIÓN A FIREBASE ---
 if not firebase_admin._apps:
@@ -350,3 +350,4 @@ else:
                 st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.info("No hay eventos activos por ahora.")
+
