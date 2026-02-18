@@ -1,4 +1,3 @@
-
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
@@ -32,7 +31,7 @@ if not firebase_admin._apps:
     except: st.error("⚠️ Error: No se encuentra el archivo llave.json")
 
 # --- CONSTANTES ---
-ID_LIDER_MAESTRO = "1234" # <--- ¡PON TU ID REAL AQUÍ!
+ID_LIDER_MAESTRO = "1234" # <--- ¡CAMBIA ESTO POR TU ID REAL!
 ID_COACH = "0000"
 ROLES_JUEGO = ["Jungla", "Experiencia", "Mid", "Roam", "ADC"]
 
@@ -67,25 +66,21 @@ if st.session_state['pagina'] == 'login':
         if id_in:
             res = db.reference(f'usuarios/{id_in}').get()
             if res:
-                st.session_state['usuario'] = res
-                st.session_state['id_actual'] = id_in
+                st.session_state['usuario'], st.session_state['id_actual'] = res, id_in
                 ir_a('menu')
-            else: st.error("ID incorrecto o no registrado.")
+            else: st.error("ID no registrado.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 2. MENÚ PRINCIPAL
 # ==========================================
 elif st.session_state['pagina'] == 'menu':
-    u = st.session_state['usuario']
-    my_id = st.session_state['id_actual']
-    
-    # Determinamos el Rol de Sesión
+    u, my_id = st.session_state['usuario'], st.session_state['id_actual']
     rol = u.get('rol', 'Miembro')
     if str(my_id) == ID_LIDER_MAESTRO: rol = "Lider"
     if str(my_id) == ID_COACH: rol = "Coach"
 
-    st.markdown(f"<div class='card'><h2 style='text-align:center; color:#3498DB;'>PANEL: {rol.upper()}</h2><p style='text-align:center;'>Usuario: <b>{u.get('nombre')}</b></p></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='card'><h2 style='text-align:center;'>{rol.upper()}: {u.get('nombre')}</h2></div>", unsafe_allow_html=True)
 
     if rol == "Lider":
         c1, c2 = st.columns(2)
@@ -98,9 +93,9 @@ elif st.session_state['pagina'] == 'menu':
             if st.button("🔧 CAMBIAR ID"): ir_a('cambio_id')
             if st.button("🎁 SUGERENCIAS"): ir_a('ver_sugerencias')
         
-        # Botón Especial para el Ranking del Coach (Solo Líder lo ve aquí)
         st.markdown('<div class="btn-dorado">', unsafe_allow_html=True)
-        if st.button("⭐ RANKING DE RENDIMIENTO (COACH)"): ir_a('ranking_coach')
+        if st.button("👀 VER LINEUP (TITULARES/SUPLENTES)"): ir_a('ver_lineup')
+        if st.button("⭐ RANKING DE COACH"): ir_a('ranking_coach')
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
@@ -109,25 +104,20 @@ elif st.session_state['pagina'] == 'menu':
 
     elif rol == "Coach":
         st.markdown('<div class="btn-dorado">', unsafe_allow_html=True)
-        if st.button("⭐ VER MI RANKING DE PUNTOS"): ir_a('ranking_coach')
+        if st.button("🎮 GESTIONAR TITULARES Y SUPLENTES"): ir_a('coach_lineup')
+        if st.button("⭐ VER MI RANKING"): ir_a('ranking_coach')
         st.markdown('</div>', unsafe_allow_html=True)
+        if st.button("📈 DAR PUNTOS"): ir_a('coach_puntos')
+        if st.button("⚔️ EQUIPOS DE 5"): ir_a('coach_equipos')
+        if st.button("🎁 SUGERIR PREMIO"): ir_a('coach_premios')
 
-        if st.button("📈 GESTIONAR PUNTOS"): ir_a('coach_puntos')
-        if st.button("⚔️ CREAR EQUIPOS"): ir_a('coach_equipos')
-        if st.button("🎁 PREMIOS"): ir_a('coach_premios')
-
-    elif rol == "Moderador":
-        if st.button("💎 GESTIONAR DIAMANTES"): ir_a('diamantes')
-        if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
-
-    # Botones comunes
+    # Comunes
     st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
-    if st.button("📋 MIEMBROS DEL ESCUADRÓN"): ir_a('lista')
-    if st.button("🏆 EVENTOS Y ASISTENCIA"): ir_a('ver_eventos')
+    if st.button("📋 LISTA DEL CLAN"): ir_a('lista')
+    if st.button("🏆 EVENTOS"): ir_a('ver_eventos')
     st.markdown('</div>', unsafe_allow_html=True)
-
     st.markdown('<div class="btn-gris">', unsafe_allow_html=True)
-    if st.button("🚪 CERRAR SESIÓN"): ir_a('login')
+    if st.button("🚪 SALIR"): ir_a('login')
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -135,248 +125,155 @@ elif st.session_state['pagina'] == 'menu':
 # ==========================================
 else:
     st.markdown('<div class="btn-volver">', unsafe_allow_html=True)
-    if st.button("⬅️ VOLVER AL MENÚ"): ir_a('menu')
+    if st.button("⬅️ VOLVER"): ir_a('menu')
     st.markdown('</div>', unsafe_allow_html=True)
     
-    pag = st.session_state['pagina']
-    u_act = st.session_state['usuario']
-    id_act = st.session_state['id_actual']
-    
+    pag, u_act, id_act = st.session_state['pagina'], st.session_state['usuario'], st.session_state['id_actual']
     rol_s = u_act.get('rol', 'Miembro')
     if str(id_act) == ID_LIDER_MAESTRO: rol_s = "Lider"
     if str(id_act) == ID_COACH: rol_s = "Coach"
 
-    # --- NUEVA FUNCION: RANKING DE PUNTOS DE COACH ---
-    if pag == 'ranking_coach':
-        st.header("⭐ RANKING DE RENDIMIENTO")
-        st.info("Tabla oficial de puntos otorgados por el Coach.")
+    # --- NUEVA FUNCIÓN: GESTIÓN DE LINEUP (COACH) ---
+    if pag == 'coach_lineup':
+        st.header("🎮 FORMACIÓN TÁCTICA")
         data = db.reference('usuarios').get()
         if data:
-            lista = []
-            for k, v in data.items():
-                if isinstance(v, dict) and v.get('rol') != 'Coach':
-                    lista.append({
-                        "id": k,
-                        "nombre": v.get('nombre'),
-                        "puntos": v.get('puntos_coach', 0),
-                        "rol1": v.get('rol_primario', '-'),
-                        "rol2": v.get('rol_secundario', '-')
-                    })
+            nombres_ids = {k: f"{v['nombre']} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') != 'Coach'}
             
-            # Ordenar de mayor a menor puntos
-            lista_ordenada = sorted(lista, key=lambda x: x['puntos'], reverse=True)
+            st.subheader("Selecciona 5 Titulares")
+            tits = st.multiselect("Titulares", list(nombres_ids.values()), key="sel_tit")
             
-            # Mostrar tabla con medallas
-            for index, jugador in enumerate(lista_ordenada):
-                medalla = ""
-                if index == 0: medalla = "🥇"
-                elif index == 1: medalla = "🥈"
-                elif index == 2: medalla = "🥉"
-                else: medalla = f"#{index + 1}"
-                
-                color_borde = "#F1C40F" if index < 3 else "#566573"
-                
-                st.markdown(f"""
-                <div class="card" style="border-color: {color_borde} !important;">
-                    <h3 style="margin:0;">{medalla} {jugador['nombre']}</h3>
-                    <p style="font-size: 20px; color: #F39C12 !important;">⭐ <b>{jugador['puntos']} Puntos</b></p>
-                    <p style="font-size: 14px; color: gray;">🎮 {jugador['rol1']} / {jugador['rol2']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+            st.subheader("Selecciona 5 Suplentes")
+            sups = st.multiselect("Suplentes", list(nombres_ids.values()), key="sel_sup")
+            
+            if st.button("💾 GUARDAR FORMACIÓN"):
+                if len(tits) == 5 and len(sups) == 5:
+                    db.reference('lineup_actual').set({'titulares': tits, 'suplentes': sups})
+                    st.success("Lineup actualizado correctamente")
+                else: st.warning("Debes elegir exactamente 5 titulares y 5 suplentes.")
 
-    # --- 1. TESORERÍA ---
-    elif pag == 'diamantes':
-        st.header("💎 TESORERÍA DEL CLAN")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        if rol_s in ["Lider", "Moderador"]:
-            target = st.text_input("ID del Jugador a gestionar")
-            cant = st.number_input("Cantidad", step=1, min_value=1)
+    # --- NUEVA FUNCIÓN: VER LINEUP (LIDER Y MIEMBROS) ---
+    elif pag == 'ver_lineup':
+        st.header("👀 FORMACIÓN ACTUAL")
+        lineup = db.reference('lineup_actual').get()
+        if lineup:
             c1, c2 = st.columns(2)
-            if c1.button("➕ SUMAR DIAMANTES"):
-                ref = db.reference(f'usuarios/{target}')
-                if ref.get():
-                    ref.update({'Diamantes': ref.get().get('Diamantes', 0) + cant})
-                    st.success(f"Diamantes añadidos al ID {target}")
-                else: st.error("ID no existe")
-            if c2.button("➕ ANOTAR DEUDA"):
-                ref = db.reference(f'usuarios/{target}')
-                if ref.get():
-                    ref.update({'deuda': ref.get().get('deuda', 0) + cant})
-                    st.warning(f"Deuda anotada al ID {target}")
-                else: st.error("ID no existe")
-        else: st.error("Acceso denegado.")
-        st.markdown('</div>', unsafe_allow_html=True)
+            with c1:
+                st.markdown("### 🔥 TITULARES")
+                for p in lineup.get('titulares', []): st.info(p)
+            with c2:
+                st.markdown("### 💤 SUPLENTES")
+                for p in lineup.get('suplentes', []): st.warning(p)
+        else: st.info("El Coach aún no ha definido la formación.")
 
-    # --- 2. RANKING GENERAL ---
+    # --- RANKING COACH ---
+    elif pag == 'ranking_coach':
+        st.header("⭐ RANKING DE RENDIMIENTO")
+        data = db.reference('usuarios').get()
+        if data:
+            lista = [{"n": v['nombre'], "p": v.get('puntos_coach',0)} for k,v in data.items() if v.get('rol') != 'Coach']
+            lista = sorted(lista, key=lambda x: x['p'], reverse=True)
+            for i, j in enumerate(lista):
+                med = "🥇" if i==0 else "🥈" if i==1 else "🥉" if i==2 else f"#{i+1}"
+                st.markdown(f'<div class="card">{med} <b>{j["n"]}</b> - ⭐ {j["p"]} Pts</div>', unsafe_allow_html=True)
+
+    # --- TESORERÍA ---
+    elif pag == 'diamantes':
+        st.header("💎 TESORERÍA")
+        target = st.text_input("ID Jugador")
+        cant = st.number_input("Monto", step=1, min_value=1)
+        if st.button("➕ DIAMANTES"):
+            r = db.reference(f'usuarios/{target}')
+            if r.get(): r.update({'Diamantes': r.get().get('Diamantes',0)+cant}); st.success("Ok")
+        if st.button("➕ DEUDA"):
+            r = db.reference(f'usuarios/{target}')
+            if r.get(): r.update({'deuda': r.get().get('deuda',0)+cant}); st.warning("Anotado")
+
+    # --- RANKING GENERAL ---
     elif pag == 'ranking':
         st.header("🏆 RANKING GENERAL")
         data = db.reference('usuarios').get()
         if data:
-            lista = []
-            for k, v in data.items():
-                if isinstance(v, dict) and v.get('rol') != 'Coach':
-                    lista.append({
-                        "Guerrero": v.get('nombre'),
-                        "💎 Diamantes": v.get('Diamantes', 0),
-                        "💰 Deuda": v.get('deuda', 0)
-                    })
-            st.table(sorted(lista, key=lambda x: x['💎 Diamantes'], reverse=True))
+            lista = [{"Nombre": v['nombre'], "💎": v.get('Diamantes',0), "💰": v.get('deuda',0)} for k,v in data.items() if v.get('rol') != 'Coach']
+            st.table(sorted(lista, key=lambda x: x['💎'], reverse=True))
 
-    # --- 3. REGISTRO ---
+    # --- REGISTRO ---
     elif pag == 'registro':
-        st.header("📝 REGISTRAR NUEVO MIEMBRO")
-        with st.form("reg_form"):
-            rid = st.text_input("ID Nuevo (Ej: 5566)")
-            rnom = st.text_input("Nombre / Nickname")
-            rrol = st.selectbox("Rango", ["Miembro", "Moderador", "Lider", "Coach"])
-            
+        st.header("📝 REGISTRO")
+        with st.form("f"):
+            rid = st.text_input("ID"); rnom = st.text_input("Nombre"); rrol = st.selectbox("Rango", ["Miembro", "Moderador", "Coach"])
             rp, rs = "N/A", "N/A"
             if rrol != "Coach":
-                st.markdown("---")
-                st.write("🎮 **Roles de Juego:**")
-                rp = st.selectbox("Rol Principal", ROLES_JUEGO)
-                rs = st.selectbox("Rol Secundario", ROLES_JUEGO)
-            
-            if st.form_submit_button("GUARDAR USUARIO"):
-                if rrol == "Coach" and rol_s != "Lider":
-                    st.error("Solo el Líder puede crear al Coach.")
-                else:
-                    datos = {'nombre': rnom, 'rol': rrol, 'Diamantes': 0, 'deuda': 0, 'sanciones': 0, 'puntos_coach': 0}
-                    if rrol != "Coach":
-                        datos['rol_primario'] = rp
-                        datos['rol_secundario'] = rs
-                    db.reference(f'usuarios/{rid}').set(datos)
-                    st.success(f"✅ Usuario {rnom} registrado.")
+                rp = st.selectbox("Primario", ROLES_JUEGO); rs = st.selectbox("Secundario", ROLES_JUEGO)
+            if st.form_submit_button("GUARDAR"):
+                d = {'nombre': rnom, 'rol': rrol, 'Diamantes':0, 'deuda':0, 'sanciones':0, 'puntos_coach':0}
+                if rrol != "Coach": d.update({'rol_primario': rp, 'rol_secundario': rs})
+                db.reference(f'usuarios/{rid}').set(d); st.success("Registrado")
 
-    # --- 4. LISTA DE MIEMBROS ---
+    # --- LISTA ---
     elif pag == 'lista':
-        st.header("📋 ESCUADRÓN PHOENIX")
+        st.header("📋 MIEMBROS")
         data = db.reference('usuarios').get()
         if data:
             for k, v in data.items():
-                if isinstance(v, dict):
-                    st.markdown('<div class="card">', unsafe_allow_html=True)
-                    puede_ver_id = (rol_s in ["Lider", "Moderador", "Coach"]) or (str(id_act) == str(k))
-                    if puede_ver_id: st.write(f"🆔 **ID:** `{k}`")
-                    st.write(f"👤 **{v.get('nombre')}**")
-                    st.write(f"🛡️ {v.get('rol')}")
-                    if v.get('rol') != 'Coach':
-                        st.write(f"🎮 {v.get('rol_primario', '?')} | {v.get('rol_secundario', '?')}")
-                    st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                if rol_s in ["Lider", "Moderador", "Coach"] or str(id_act) == str(k): st.write(f"🆔 `{k}`")
+                st.write(f"👤 **{v['nombre']}** | 🛡️ {v['rol']}")
+                if v.get('rol') != 'Coach': st.write(f"🎮 {v.get('rol_primario')} / {v.get('rol_secundario')}")
+                st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- 5. COACH: PUNTOS ---
+    # --- COACH PUNTOS ---
     elif pag == 'coach_puntos':
-        st.header("📈 GESTIÓN DE PUNTOS (COACH)")
-        all_u = db.reference('usuarios').get()
-        if all_u:
-            jugadores = {k:v for k,v in all_u.items() if v.get('rol') != 'Coach'}
-            for k, v in jugadores.items():
-                with st.container():
-                    st.markdown(f'<div class="card">', unsafe_allow_html=True)
-                    c1, c2 = st.columns([3, 1])
-                    with c1:
-                        st.write(f"👤 **{v['nombre']}**")
-                        st.write(f"⭐ Puntos: **{v.get('puntos_coach', 0)}**")
-                    with c2:
-                        puntos = st.number_input("Puntos", step=1, key=f"inp_{k}")
-                        if st.button("DAR", key=f"btn_{k}"):
-                            db.reference(f'usuarios/{k}').update({'puntos_coach': v.get('puntos_coach', 0) + puntos})
-                            st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
+        st.header("📈 PUNTOS")
+        data = db.reference('usuarios').get()
+        for k, v in data.items():
+            if v.get('rol') != 'Coach':
+                pts = st.number_input(f"Sumar a {v['nombre']}", step=1, key=k)
+                if st.button(f"DAR PUNTOS", key=f"b{k}"):
+                    db.reference(f'usuarios/{k}').update({'puntos_coach': v.get('puntos_coach',0)+pts}); st.rerun()
 
-    # --- 6. COACH: EQUIPOS ---
-    elif pag == 'coach_equipos':
-        st.header("⚔️ FORMADOR DE EQUIPOS")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("Nuevo Equipo")
-        all_u = db.reference('usuarios').get()
-        if all_u:
-            nombres = [f"{v['nombre']} ({v.get('rol_primario','?')})" for k,v in all_u.items() if v.get('rol') != 'Coach']
-            team_name = st.text_input("Nombre del Equipo")
-            seleccion = st.multiselect("Selecciona 5 Guerreros", nombres)
-            if st.button("CONFIRMAR EQUIPO"):
-                if len(seleccion) == 5:
-                    db.reference('equipos').push().set({'nombre': team_name, 'jugadores': seleccion, 'coach': u_act.get('nombre')})
-                    st.success("Equipo creado")
-                else: st.warning("Debes seleccionar 5 jugadores.")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.subheader("Equipos Activos")
-        eqs = db.reference('equipos').get()
-        if eqs:
-            for ek, ev in eqs.items():
-                st.markdown(f"""<div class="card" style="border-color: #3498DB !important;"><h3>🚩 {ev.get('nombre')}</h3><p><b>Coach:</b> {ev.get('coach')}</p><p><b>Integrantes:</b><br>{', '.join(ev.get('jugadores', []))}</p></div>""", unsafe_allow_html=True)
-                if st.button("Eliminar Equipo", key=ek):
-                    db.reference(f'equipos/{ek}').delete(); st.rerun()
-
-    # --- 7. COACH: PREMIOS ---
-    elif pag == 'coach_premios':
-        st.header("🎁 SUGERENCIA DE PREMIOS")
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        nota = st.text_area("Sugerencia para el Líder:")
-        if st.button("ENVIAR"):
-            if nota:
-                db.reference('sugerencias').push().set({'mensaje': nota, 'coach': u_act.get('nombre')})
-                st.success("Enviada")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- 8. LÍDER: VER SUGERENCIAS ---
-    elif pag == 'ver_sugerencias':
-        st.header("📩 BUZÓN DEL COACH")
-        sugs = db.reference('sugerencias').get()
-        if sugs:
-            for sk, sv in sugs.items():
-                st.markdown(f'<div class="card"><b>De: {sv.get("coach")}</b><br><br>{sv.get("mensaje")}</div>', unsafe_allow_html=True)
-                if st.button("Borrar Nota", key=sk): db.reference(f'sugerencias/{sk}').delete(); st.rerun()
-
-    # --- 9. ELIMINAR MIEMBRO ---
+    # --- ELIMINAR ---
     elif pag == 'eliminar':
-        st.header("❌ ELIMINAR MIEMBRO")
-        st.markdown('<div class="card" style="border-color:red !important;">', unsafe_allow_html=True)
-        del_id = st.text_input("ID a eliminar")
-        if del_id:
-            info = db.reference(f'usuarios/{del_id}').get()
-            if info:
-                st.error(f"¿Borrar a **{info['nombre']}**?")
-                if st.button("SÍ, BORRAR"):
-                    db.reference(f'usuarios/{del_id}').delete(); st.success("Eliminado"); st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.header("❌ ELIMINAR")
+        did = st.text_input("ID")
+        if st.button("CONFIRMAR ELIMINAR"):
+            db.reference(f'usuarios/{did}').delete(); st.success("Eliminado")
 
-    # --- 10. CAMBIAR ID ---
+    # --- CAMBIAR ID ---
     elif pag == 'cambio_id':
-        st.header("🔧 CAMBIAR ID")
-        old_id, new_id = st.text_input("ID Viejo"), st.text_input("ID Nuevo")
-        if st.button("EJECUTAR CAMBIO"):
-            old_data = db.reference(f'usuarios/{old_id}').get()
-            if old_data:
-                db.reference(f'usuarios/{new_id}').set(old_data)
-                db.reference(f'usuarios/{old_id}').delete()
-                st.success("Cambio completado")
-            else: st.error("ID Viejo no existe")
+        st.header("🔧 CAMBIO ID")
+        oid, nid = st.text_input("Viejo"), st.text_input("Nuevo")
+        if st.button("CAMBIAR"):
+            data = db.reference(f'usuarios/{oid}').get()
+            if data: db.reference(f'usuarios/{nid}').set(data); db.reference(f'usuarios/{oid}').delete(); st.success("Listo")
 
-    # --- 11. SANCIONES ---
+    # --- SANCIONES ---
     elif pag == 'sanciones':
-        st.header("⚠️ APLICAR SANCIÓN")
-        s_id = st.text_input("ID Infractor")
-        if st.button("MULTAR (+1)"):
-            ref = db.reference(f'usuarios/{s_id}')
-            if ref.get(): ref.update({'sanciones': ref.get().get('sanciones', 0) + 1}); st.error("Sancionado")
+        st.header("⚠️ SANCIONES")
+        sid = st.text_input("ID")
+        if st.button("SANCIONAR (+1)"):
+            r = db.reference(f'usuarios/{sid}')
+            if r.get(): r.update({'sanciones': r.get().get('sanciones',0)+1}); st.error("Sancionado")
 
-    # --- 12. EVENTOS ---
-    elif pag == 'crear_evento':
-        st.header("📅 CREAR EVENTO")
-        tit = st.text_input("Título"); desc = st.text_area("Detalles")
-        if st.button("PUBLICAR"):
-            db.reference('eventos').push().set({'nombre': tit, 'descripcion': desc, 'fecha': 'Pendiente'})
-            st.success("Evento creado")
+    # --- PREMIOS (SUGERENCIAS) ---
+    elif pag == 'coach_premios':
+        st.header("🎁 SUGERIR PREMIO")
+        n = st.text_area("Nota")
+        if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Enviado")
 
+    elif pag == 'ver_sugerencias':
+        st.header("📩 BUZÓN")
+        s = db.reference('sugerencias').get()
+        if s:
+            for k, v in s.items():
+                st.markdown(f'<div class="card"><b>De: {v["c"]}</b><br>{v["m"]}</div>', unsafe_allow_html=True)
+                if st.button("Leído", key=k): db.reference(f'sugerencias/{k}').delete(); st.rerun()
+
+    # --- EVENTOS ---
     elif pag == 'ver_eventos':
         st.header("🏆 EVENTOS")
         evs = db.reference('eventos').get()
         if evs:
-            for eid, info in evs.items():
-                st.markdown(f'<div class="card"><h3>{info.get("nombre")}</h3><p>{info.get("descripcion")}</p></div>', unsafe_allow_html=True)
-                if st.button("🙋 YO ASISTIRÉ", key=f"yo_{eid}"):
-                    db.reference(f'eventos/{eid}/asistentes/{id_act}').set(u_act.get('nombre')); st.success("Anotado")
-                asis = info.get('asistentes', {})
-                if asis: st.write(f"✅ Asistentes: {', '.join(asis.values())}")
+            for k, v in evs.items():
+                st.markdown(f'<div class="card"><h3>{v["nombre"]}</h3>{v["descripcion"]}</div>', unsafe_allow_html=True)
+                if st.button("ASISTIR", key=k): db.reference(f'eventos/{k}/asistentes/{id_act}').set(u_act['nombre']); st.success("Anotado")
