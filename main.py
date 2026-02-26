@@ -7,39 +7,34 @@ import datetime
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="ZENITH E-SPORTS", layout="wide", initial_sidebar_state="collapsed")
 
-# --- FUNCIÓN PARA FONDO DESTACADO ---
 def set_bg_hack(main_bg):
     try:
         with open(main_bg, "rb") as f: data = f.read()
         bin_str = base64.b64encode(data).decode()
-        st.markdown(f"""
-            <style>
-            .stApp {{
-                /* Aquí está el truco: el 0.2 significa solo 20% de oscuridad.
-                   Si quieres que se vea la imagen PURA, borra toda la parte de
-                   'linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)),'
-                   y deja solo el 'url(...)'
-                */
-                background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(data:image/png;base64,{bin_str});
-                background-size: cover;
-                background-position: center;
-                background-attachment: fixed;
-            }}
-            </style>
-            """, unsafe_allow_html=True)
+        st.markdown(f"""<style>.stApp {{ background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(data:image/png;base64,{bin_str}); background-size: cover; background-position: center; background-attachment: fixed; }}</style>""", unsafe_allow_html=True)
     except: st.markdown("<style>.stApp {background-color: #0E1117;}</style>", unsafe_allow_html=True)
 
-# Asegúrate de tener tu imagen llamada 'fondo.jpg' en la carpeta
 set_bg_hack('fondo.jpg')
 
-# --- 3. ESTILOS PRO (CON TARJETAS MÁS TRANSPARENTES) ---
+# --- 2. CONEXIÓN FIREBASE ---
+if not firebase_admin._apps:
+    try:
+        cred = credentials.Certificate("llave.json")
+        firebase_admin.initialize_app(cred, {'databaseURL': 'https://escuadron-control-default-rtdb.firebaseio.com/'})
+    except: st.error("⚠️ Error Crítico: No se encontró 'llave.json'.")
+
+# --- CONSTANTES ---
+ID_LIDER_MAESTRO = "1234" # Tu Contraseña Maestra de Líder
+ROLES_JUEGO = ["Jungla", "Experiencia", "Mid", "Roam", "ADC"]
+
+def notificar_telefono(mensaje):
+    st.toast(f"🔔 NOTIFICACIÓN ENVIADA: {mensaje}")
+
+# --- 3. ESTILOS PRO ---
 st.markdown("""
     <style>
-    h1, h2, h3, p, div, span, label, th, td { color: white !important; text-shadow: 2px 2px 4px #000000 !important; }
-    
-    /* Aquí cambié 0.85 por 0.70 para que se vea más el fondo a través de las cajas */
-    .card { background-color: rgba(15, 23, 42, 0.70) !important; padding: 20px; border-radius: 12px; border: 2px solid #3B82F6 !important; margin-bottom: 15px; }
-    
+    h1, h2, h3, p, div, span, label, th, td { color: white !important; text-shadow: 1px 1px 3px #000; }
+    .card { background-color: rgba(15, 23, 42, 0.85) !important; padding: 20px; border-radius: 12px; border: 2px solid #3B82F6 !important; margin-bottom: 15px; }
     .stButton>button { border-radius: 8px !important; font-weight: bold !important; height: 3em; width: 100%; border: 1px solid white !important; transition: 0.3s; }
     .stButton>button:hover { transform: scale(1.02); filter: brightness(1.2); }
     .btn-rojo button { background-color: #E63946 !important; }
@@ -423,4 +418,3 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
-
