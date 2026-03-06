@@ -12,10 +12,48 @@ def set_bg_hack(main_bg):
     try:
         with open(main_bg, "rb") as f: data = f.read()
         bin_str = base64.b64encode(data).decode()
-        st.markdown(f"""<style>.stApp {{ background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(data:image/png;base64,{bin_str}); background-size: cover; background-position: center; background-attachment: fixed; }}</style>""", unsafe_allow_html=True)
-    except: st.markdown("<style>.stApp {background-color: #0E1117;}</style>", unsafe_allow_html=True)
+        # Ajuste para iOS: Quitamos 'fixed' y usamos una sintaxis más compatible
+        st.markdown(f"""
+            <style>
+            .stApp {{
+                background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(data:image/png;base64,{bin_str});
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+            }}
+            </style>
+            """, unsafe_allow_html=True)
+    except: 
+        st.markdown("<style>.stApp {background-color: #050505;}</style>", unsafe_allow_html=True)
 
 set_bg_hack('fondo.jpg')
+
+# --- ESTILOS REFORZADOS PARA IPHONE ---
+st.markdown("""
+    <style>
+    /* Forzamos a Safari a renderizar colores oscuros y letras blancas */
+    :root { color-scheme: dark; }
+    
+    html, body, [data-testid="stAppViewContainer"] {
+        color: white !important;
+        background-color: #000000 !important;
+    }
+
+    h1, h2, h3, p, span, label {
+        color: white !important;
+        text-shadow: 2px 2px 8px rgba(0,0,0,1) !important;
+        -webkit-text-fill-color: white !important; /* Específico para Safari */
+    }
+
+    /* Input de texto compatible con iOS */
+    .stTextInput > div > div > input {
+        color: white !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 5px !important;
+        border: 1px solid #48CAE4 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- 2. CONEXIÓN FIREBASE ---
 if not firebase_admin._apps:
@@ -472,3 +510,4 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
+
