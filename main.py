@@ -26,7 +26,7 @@ def set_bg_hack(main_bg):
     except: 
         st.markdown("<style>.stApp {background-color: #050505;}</style>", unsafe_allow_html=True)
 
-set_bg_hack('fondo.jpg')
+set_bg_hack('fondo.png')
 
 # --- ESTILOS REFORZADOS PARA IPHONE ---
 st.markdown("""
@@ -510,4 +510,5 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
+
 
