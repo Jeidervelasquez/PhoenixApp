@@ -1,3 +1,6 @@
+
+
+
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
@@ -12,11 +15,21 @@ def set_bg_hack(main_bg):
     try:
         with open(main_bg, "rb") as f: data = f.read()
         bin_str = base64.b64encode(data).decode()
-        st.markdown(f"""<style>.stApp {{ background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(data:image/png;base64,{bin_str}); background-size: cover; background-position: center; background-attachment: fixed; }}</style>""", unsafe_allow_html=True)
-    except: st.markdown("<style>.stApp {background-color: #0E1117;}</style>", unsafe_allow_html=True)
+        # SOLUCIÓN iPHONE: Se eliminó background-attachment: fixed y se forzó con !important
+        st.markdown(f"""
+            <style>
+            .stApp {{ 
+                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(data:image/png;base64,{bin_str}) !important; 
+                background-size: cover !important; 
+                background-position: center center !important; 
+                background-repeat: no-repeat !important; 
+            }}
+            </style>
+            """, unsafe_allow_html=True)
+    except: 
+        st.markdown("<style>.stApp {background-color: #0E1117;}</style>", unsafe_allow_html=True)
 
 set_bg_hack('fondo.jpg')
-
 
 # --- 2. CONEXIÓN FIREBASE ---
 if not firebase_admin._apps:
@@ -39,15 +52,38 @@ def mostrar_logo():
         with col_logo:
             st.image("logo.png", use_container_width=True)
 
-# --- 3. ESTILOS PRO (TOTALMENTE TRANSPARENTE) ---
+# --- 3. ESTILOS PRO (COMPATIBLE CON iOS / iPHONE) ---
 st.markdown("""
     <style>
+    /* Forzar tipografía y colores en móviles (Streamlit a veces los bloquea) */
+    html, body, [class*="css"], .stApp {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        color: white !important;
+    }
+
     /* Texto con sombreado fuerte para que se lea perfecto sobre el fondo sin necesidad de cajas */
-    h1, h2, h3, p, div, span, label, th, td { color: white !important; text-shadow: 2px 2px 5px #000000; }
+    h1, h2, h3, p, div, span, label, th, td { 
+        color: white !important; 
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.9); 
+    }
     
-    /* Botones elegantes */
-    .stButton>button { background-color: rgba(0,0,0,0.5) !important; border-radius: 8px !important; font-weight: bold !important; height: 3em; width: 100%; border: 1px solid #48CAE4 !important; transition: 0.3s; }
-    .stButton>button:hover { transform: scale(1.02); background-color: rgba(72, 202, 228, 0.3) !important; }
+    /* Botones elegantes estilo Glassmorphism (Efecto Vidrio iOS) */
+    .stButton>button { 
+        background-color: rgba(255, 255, 255, 0.15) !important; 
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important; /* VITAL PARA IPHONE */
+        border-radius: 12px !important; 
+        font-weight: bold !important; 
+        height: 3em; 
+        width: 100%; 
+        border: 1px solid rgba(255, 255, 255, 0.3) !important; 
+        transition: 0.3s; 
+        color: white !important;
+    }
+    .stButton>button:hover { 
+        transform: scale(1.02); 
+        background-color: rgba(72, 202, 228, 0.3) !important; 
+    }
     
     .btn-rojo button { border-color: #E63946 !important; }
     .btn-verde button { border-color: #2A9D8F !important; }
@@ -55,17 +91,18 @@ st.markdown("""
     .btn-cyan button { border-color: #457B9D !important; }
     .btn-gris button { border-color: #adb5bd !important; }
     
-    /* Cajas de texto transparentes solo con línea inferior */
-    .stTextInput > div > div > input { 
+    /* Cajas de texto transparentes mejoradas para celular */
+    .stTextInput > div > div > input, .stTextArea > div > div > textarea { 
         color: white !important; 
-        background-color: transparent !important; 
-        border: none !important; 
+        background-color: rgba(0,0,0,0.4) !important; 
+        border: 1px solid rgba(255,255,255,0.2) !important; 
         border-bottom: 2px solid #3B82F6 !important; 
-        border-radius: 0px !important;
+        border-radius: 8px !important;
         box-shadow: none !important;
     }
-    .stTextInput > div > div > input:focus {
+    .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
         border-bottom: 2px solid #48CAE4 !important; 
+        background-color: rgba(0,0,0,0.6) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -273,7 +310,7 @@ else:
         with st.form("reg"):
             ni = st.text_input("Contraseña del Nuevo Usuario")
             nn = st.text_input("Nombre / Nickname")
-            id_j = st.text_input("ID del Juego (Obligatorio)") # ID DEL JUEGO AGREGADO AQUÍ
+            id_j = st.text_input("ID del Juego (Obligatorio)") 
             
             nr = st.selectbox("Rango", ["Miembro", "Moderador", "Coach", "Administrador"])
             
@@ -473,4 +510,3 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
-
