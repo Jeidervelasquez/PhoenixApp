@@ -12,21 +12,10 @@ def set_bg_hack(main_bg):
     try:
         with open(main_bg, "rb") as f: data = f.read()
         bin_str = base64.b64encode(data).decode()
-        # Ajuste para iOS: Quitamos 'fixed' y usamos una sintaxis más compatible
-        st.markdown(f"""
-            <style>
-            .stApp {{
-                background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(data:image/png;base64,{bin_str});
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
-            }}
-            </style>
-            """, unsafe_allow_html=True)
-    except: 
-        st.markdown("<style>.stApp {background-color: #050505;}</style>", unsafe_allow_html=True)
+        st.markdown(f"""<style>.stApp {{ background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(data:image/png;base64,{bin_str}); background-size: cover; background-position: center; background-attachment: fixed; }}</style>""", unsafe_allow_html=True)
+    except: st.markdown("<style>.stApp {background-color: #0E1117;}</style>", unsafe_allow_html=True)
 
-set_bg_hack('fondo.png')
+set_bg_hack('fondo.jpg')
 
 # --- ESTILOS REFORZADOS PARA IPHONE ---
 st.markdown("""
@@ -510,5 +499,3 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
-
-
