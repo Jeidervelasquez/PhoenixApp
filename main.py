@@ -4,6 +4,7 @@ from firebase_admin import credentials, db
 import base64
 import datetime
 import os
+import requests  # <-- LIBRERÍA AÑADIDA PARA TELEGRAM
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="KYSEN E-SPORTS", layout="wide", initial_sidebar_state="collapsed")
@@ -37,6 +38,19 @@ if not firebase_admin._apps:
 # --- CONSTANTES ---
 ID_LIDER_MAESTRO = "1234" # Tu Contraseña Maestra de Líder
 ROLES_JUEGO = ["Jungla", "Experiencia", "Mid", "Roam", "ADC"]
+
+# --- TELEGRAM CONFIGURACIÓN ---
+TOKEN_TELEGRAM = "8682305104:AAEJVSbX2uvBH2qXcRqtiMpfpBy4_2n42XY"
+ID_GRUPO_KYSEN = "-5114492594"
+
+def enviar_notificacion_tg(mensaje):
+    """Envía un aviso al grupo de Telegram del clan"""
+    url = f"https://api.telegram.org/bot{TOKEN_TELEGRAM}/sendMessage"
+    payload = {"chat_id": ID_GRUPO_KYSEN, "text": mensaje, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, data=payload, timeout=5)
+    except:
+        pass # Si hay error de red, la app no se cuelga
 
 def notificar_telefono(mensaje):
     st.toast(f"🔔 NOTIFICACIÓN ENVIADA: {mensaje}")
@@ -260,6 +274,11 @@ else:
             if st.form_submit_button("PUBLICAR EVENTO"):
                 db.reference('eventos').push().set({'nombre': t, 'fecha': str(f), 'descripcion': d})
                 notificar_telefono(f"NUEVO EVENTO: {t} para la fecha {f}")
+                
+                # --- AQUÍ MANDA TELEGRAM ---
+                msg = f"📅 *NUEVO EVENTO CREADO*\n\n🏆 *Evento:* {t}\n🗓️ *Fecha:* {f}\n📝 *Detalles:* {d}\n\n¡Entren a la App para confirmar asistencia!"
+                enviar_notificacion_tg(msg)
+                
                 st.success("Evento publicado correctamente.")
 
     elif pag == 'ver_eventos':
@@ -453,6 +472,11 @@ else:
         txt = st.text_area("Anuncio para el clan")
         if st.button("PUBLICAR"):
             db.reference('anuncios').push().set({'texto': txt, 'autor': u_act['nombre']})
+            
+            # --- AQUÍ MANDA TELEGRAM ---
+            msg = f"📢 *ANUNCIO DE {u_act['nombre'].upper()}*\n\n{txt}"
+            enviar_notificacion_tg(msg)
+            
             st.success("Publicado.")
 
     elif pag == 'hall_of_fame':
@@ -525,6 +549,12 @@ else:
                         res = st.selectbox("Resultado Final", ["Victoria", "Derrota"])
                         if st.form_submit_button("GUARDAR REGISTRO"):
                             db.reference('partidas').push().set({'rival': riv, 'fecha': str(f), 'resultado': res})
+                            
+                            # --- AQUÍ MANDA TELEGRAM ---
+                            emoji = "🔥" if res == "Victoria" else "💀"
+                            msg = f"{emoji} *NUEVO RESULTADO DE SCRIM*\n\n⚔️ *Kysen vs {riv}*\n📊 *Resultado:* {res}\n\n¡Revisen el historial en la App!"
+                            enviar_notificacion_tg(msg)
+                            
                             st.success("✅ Partida registrada en la base de datos.")
                             st.rerun()
 
