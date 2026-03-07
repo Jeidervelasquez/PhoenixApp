@@ -1,6 +1,3 @@
-
-
-
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
@@ -15,7 +12,6 @@ def set_bg_hack(main_bg):
     try:
         with open(main_bg, "rb") as f: data = f.read()
         bin_str = base64.b64encode(data).decode()
-        # SOLUCIÓN iPHONE: Se eliminó background-attachment: fixed y se forzó con !important
         st.markdown(f"""
             <style>
             .stApp {{ 
@@ -45,33 +41,35 @@ ROLES_JUEGO = ["Jungla", "Experiencia", "Mid", "Roam", "ADC"]
 def notificar_telefono(mensaje):
     st.toast(f"🔔 NOTIFICACIÓN ENVIADA: {mensaje}")
 
-# --- FUNCIÓN PARA EL LOGO ---
 def mostrar_logo():
     if os.path.exists("logo.png"):
         col_logo, col_espacio = st.columns([1, 8])
         with col_logo:
             st.image("logo.png", use_container_width=True)
 
+# NUEVA FUNCIÓN PARA LAS IMÁGENES DE LAS SCRIMS
+def procesar_imagen(archivo_subido):
+    if archivo_subido is not None:
+        return base64.b64encode(archivo_subido.read()).decode()
+    return None
+
 # --- 3. ESTILOS PRO (COMPATIBLE CON iOS / iPHONE) ---
 st.markdown("""
     <style>
-    /* Forzar tipografía y colores en móviles (Streamlit a veces los bloquea) */
     html, body, [class*="css"], .stApp {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
         color: white !important;
     }
 
-    /* Texto con sombreado fuerte para que se lea perfecto sobre el fondo sin necesidad de cajas */
     h1, h2, h3, p, div, span, label, th, td { 
         color: white !important; 
         text-shadow: 1px 1px 4px rgba(0,0,0,0.9); 
     }
     
-    /* Botones elegantes estilo Glassmorphism (Efecto Vidrio iOS) */
     .stButton>button { 
         background-color: rgba(255, 255, 255, 0.15) !important; 
         backdrop-filter: blur(10px) !important;
-        -webkit-backdrop-filter: blur(10px) !important; /* VITAL PARA IPHONE */
+        -webkit-backdrop-filter: blur(10px) !important;
         border-radius: 12px !important; 
         font-weight: bold !important; 
         height: 3em; 
@@ -91,7 +89,6 @@ st.markdown("""
     .btn-cyan button { border-color: #457B9D !important; }
     .btn-gris button { border-color: #adb5bd !important; }
     
-    /* Cajas de texto transparentes mejoradas para celular */
     .stTextInput > div > div > input, .stTextArea > div > div > textarea { 
         color: white !important; 
         background-color: rgba(0,0,0,0.4) !important; 
@@ -119,7 +116,7 @@ if st.session_state['pagina'] == 'login':
     st.markdown("<h1 style='text-align: center; color: #48CAE4; font-size: 50px; margin-top: 50px;'>⚡ KYSEN E-SPORTS ⚡</h1>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1,2,1])
     with c2:
-        st.write("") # Espacio en blanco
+        st.write("")
         id_in = st.text_input("Ingresa tu Contraseña", type="password").strip()
         st.write("")
         if st.button("ENTRAR A KYSEN"):
@@ -141,7 +138,6 @@ elif st.session_state['pagina'] == 'menu':
     sanciones_actuales = u.get('sanciones', 0)
     suspendido = sanciones_actuales >= 3
 
-    # --- PERFIL DEL USUARIO AL ENTRAR ---
     id_juego_u = u.get('id_juego', 'No registrado')
     rol_primario = u.get('rol_primario', 'N/A')
     rol_secundario = u.get('rol_secundario', 'N/A')
@@ -487,15 +483,93 @@ else:
             st.markdown("### 🔥 TITULARES"); [st.write(f"⚔️ {t}") for t in l.get('titulares', [])]
             st.markdown("### 💤 SUPLENTES"); [st.write(f"🛡️ {s}") for s in l.get('suplentes', [])]
             
+    # --- LA NUEVA SECCIÓN PRO DE PARTIDAS ---
     elif pag == 'partidas':
-        st.header("🎮 HISTORIAL DE SCRIMS")
-        if rol_s in ["Lider", "Administrador", "Coach", "Moderador"]:
-            with st.form("s"):
-                riv = st.text_input("Rival"); f = st.date_input("Fecha"); res = st.selectbox("Resultado", ["Victoria", "Derrota"])
-                if st.form_submit_button("GUARDAR"): db.reference('partidas').push().set({'rival': riv, 'fecha': str(f), 'resultado': res}); st.success("Ok")
-        ps = db.reference('partidas').get()
+        st.header("🎮 HISTORIAL DE SCRIMS Y ESTADÍSTICAS")
+        ps = db.reference('partidas').get() or {}
+
+        # --- 1. ESTADÍSTICAS CONTRA ESCUADRONES ---
         if ps:
-            for k, v in ps.items(): st.write(f"🆚 Kysen vs **{v['rival']}** | {v['fecha']} | Resultado: **{v['resultado']}**")
+            st.subheader("📊 NUESTRO RÉCORD CONTRA RIVALES")
+            stats = {}
+            for k, v in ps.items():
+                rival = str(v.get('rival', 'Desconocido')).upper().strip()
+                if rival not in stats:
+                    stats[rival] = {'Victoria': 0, 'Derrota': 0}
+                res = v.get('resultado', 'Derrota')
+                if res in stats[rival]:
+                    stats[rival][res] += 1
+
+            cols = st.columns(3)
+            idx = 0
+            for rival, data in stats.items():
+                with cols[idx % 3]:
+                    st.markdown(f"""
+                    <div style='background-color:rgba(0,0,0,0.4); padding:10px; border-radius:10px; border:1px solid #48CAE4; text-align:center; margin-bottom: 10px;'>
+                        <h4 style='color:#F4A261; margin:0;'>{rival}</h4>
+                        <span style='color:#2A9D8F; font-size:18px;'><b>V: {data['Victoria']}</b></span> |
+                        <span style='color:#E63946; font-size:18px;'><b>D: {data['Derrota']}</b></span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                idx += 1
+            st.write("---")
+
+        # --- 2. HERRAMIENTAS DE GESTIÓN ---
+        if rol_s in ["Lider", "Administrador", "Coach", "Moderador"]:
+            col_reg, col_img = st.columns(2)
+            with col_reg:
+                with st.expander("📝 1. REGISTRAR RESULTADO"):
+                    with st.form("form_scrim"):
+                        riv = st.text_input("Nombre del Clan Rival")
+                        f = st.date_input("Fecha del encuentro")
+                        res = st.selectbox("Resultado Final", ["Victoria", "Derrota"])
+                        if st.form_submit_button("GUARDAR REGISTRO"):
+                            db.reference('partidas').push().set({'rival': riv, 'fecha': str(f), 'resultado': res})
+                            st.success("✅ Partida registrada en la base de datos.")
+                            st.rerun()
+
+            with col_img:
+                with st.expander("🖼️ 2. ADJUNTAR CAPTURA"):
+                    if ps:
+                        opciones = {k: f"{v['fecha']} | Kysen vs {v['rival']} ({v['resultado']})" for k, v in ps.items()}
+                        id_partida = st.selectbox("Selecciona a quién le ponemos la foto:", list(opciones.keys()), format_func=lambda x: opciones[x])
+                        img_file = st.file_uploader("Sube la imagen (JPG/PNG)", type=['png', 'jpg', 'jpeg'])
+                        if st.button("VINCULAR IMAGEN"):
+                            if img_file and id_partida:
+                                img_str = procesar_imagen(img_file)
+                                db.reference(f'partidas/{id_partida}').update({'imagen': img_str})
+                                st.success("✅ Captura guardada para este escuadrón.")
+                                st.rerun()
+                            else:
+                                st.warning("⚠️ Debes seleccionar un rival y subir un archivo primero.")
+                    else:
+                        st.info("Primero debes registrar un resultado en el paso 1.")
+
+            st.write("---")
+
+        # --- 3. HISTORIAL DETALLADO ---
+        st.subheader("📜 REGISTRO DETALLADO")
+        if ps:
+            items = list(ps.items())
+            items.reverse()
+            for k, v in items:
+                c1, c2 = st.columns([2, 1])
+                with c1:
+                    color_r = "#2A9D8F" if v.get('resultado') == "Victoria" else "#E63946"
+                    st.markdown(f"<h3 style='margin-bottom:0;'>🆚 Kysen vs {v['rival']}</h3>", unsafe_allow_html=True)
+                    st.markdown(f"**Resultado:** <span style='color:{color_r}; font-size:18px;'>{v['resultado']}</span> | **Fecha:** {v['fecha']}", unsafe_allow_html=True)
+                    if rol_s == "Lider":
+                        if st.button("🗑️ Eliminar Registro", key=f"del_scrim_{k}"):
+                            db.reference(f'partidas/{k}').delete()
+                            st.rerun()
+                with c2:
+                    if v.get('imagen'):
+                        st.image(f"data:image/png;base64,{v['imagen']}", use_container_width=True)
+                    else:
+                        st.markdown("<p style='color:#adb5bd; font-style:italic; margin-top:15px;'>Sin captura adjunta</p>", unsafe_allow_html=True)
+                st.markdown("---")
+        else:
+            st.info("No hay historial de partidas todavía.")
             
     elif pag == 'ver_sugerencias':
         st.header("📩 NOTAS DEL COACH")
