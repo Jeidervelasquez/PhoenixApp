@@ -115,6 +115,20 @@ st.markdown("""
         border-bottom: 2px solid #48CAE4 !important; 
         background-color: rgba(0,0,0,0.6) !important;
     }
+
+    /* ESTILOS PARA LA TARJETA DE VERSUS */
+    .vs-card {
+        background: linear-gradient(135deg, rgba(15,20,35,0.95) 0%, rgba(35,45,75,0.95) 100%);
+        border: 2px solid #48CAE4; 
+        border-radius: 20px; 
+        padding: 30px; 
+        text-align: center; 
+        margin: 20px 0;
+        box-shadow: 0px 8px 20px rgba(0,0,0,0.7);
+    }
+    .team-name { color: #F4A261; font-size: 28px; font-weight: 900; text-transform: uppercase; text-shadow: 2px 2px #000;}
+    .vs-text { color: white; font-size: 55px; font-weight: 900; font-style: italic; text-shadow: 3px 3px #E63946; margin: 0 20px;}
+    .team-players { font-size:16px; color:#ddd; margin-top: 10px; font-weight: bold;}
     </style>
     """, unsafe_allow_html=True)
 
@@ -165,9 +179,17 @@ elif st.session_state['pagina'] == 'menu':
         </div>
     """, unsafe_allow_html=True)
 
+    # --- SECCIÓN DE ANUNCIOS MODIFICADA (CON BORRADO) ---
     anuncios = db.reference('anuncios').get()
     if anuncios:
-        for k, a in anuncios.items(): st.warning(f"📢 **AVISO DE {a['autor']}:** {a['texto']}")
+        for k, a in anuncios.items():
+            col_a, col_b = st.columns([0.85, 0.15]) # Dividimos el espacio
+            col_a.warning(f"📢 **AVISO DE {a['autor']}:** {a['texto']}")
+            # Solo los líderes o administradores pueden borrar los anuncios
+            if rol in ["Lider", "Administrador"]:
+                if col_b.button("🗑️ Borrar", key=f"del_an_{k}"):
+                    db.reference(f'anuncios/{k}').delete()
+                    st.rerun()
 
     if suspendido:
         st.error(f"🚫 ATENCIÓN: Tienes {sanciones_actuales} sanciones. ESTÁS SUSPENDIDO esta semana. No podrás participar en eventos ni scrims.")
@@ -355,23 +377,80 @@ else:
                     st.success("Lineup Actualizado")
                 else: st.warning("Debes elegir 5 de cada uno.")
 
+    # --- SECCIÓN DE EQUIPOS MODIFICADA (CON CARTELERA VERSUS) ---
     elif pag == 'coach_equipos':
-        st.header("⚔️ CREAR EQUIPOS 5v5")
-        data = db.reference('usuarios').get()
-        if data:
-            opc = [f"{v['nombre']} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') not in ['Coach', 'Administrador']]
-            n_eq = st.text_input("Nombre del Equipo")
-            j_eq = st.multiselect("Selecciona 5 Integrantes", opc)
-            if st.button("REGISTRAR EQUIPO"):
-                db.reference('equipos').push().set({'nombre': n_eq, 'jugadores': j_eq})
-                st.success("Equipo Creado.")
+        st.header("⚔️ GESTIÓN DE EQUIPOS 5v5")
         
-        st.subheader("Equipos Registrados")
-        eqs = db.reference('equipos').get()
-        if eqs:
-            for k, v in eqs.items():
-                st.write(f"🚩 **{v['nombre']}**: {', '.join(v['jugadores'])}")
-                if st.button("Borrar Equipo", key=k): db.reference(f'equipos/{k}').delete(); st.rerun()
+        tab_registro, tab_versus = st.tabs(["📝 CREAR EQUIPOS", "🔥 CARTELERA VERSUS"])
+        
+        with tab_registro:
+            data = db.reference('usuarios').get()
+            if data:
+                opc = [f"{v['nombre']} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') not in ['Coach', 'Administrador']]
+                n_eq = st.text_input("Nombre del Equipo")
+                j_eq = st.multiselect("Selecciona 5 Integrantes", opc)
+                if st.button("REGISTRAR EQUIPO"):
+                    db.reference('equipos').push().set({'nombre': n_eq, 'jugadores': j_eq})
+                    st.success("Equipo Creado."); st.rerun()
+            
+            st.subheader("Equipos Registrados actualmente")
+            eqs = db.reference('equipos').get()
+            if eqs:
+                for k, v in eqs.items():
+                    st.write(f"🚩 **{v['nombre']}**: {', '.join(v['jugadores'])}")
+                    if st.button("Borrar Equipo", key=k): db.reference(f'equipos/{k}').delete(); st.rerun()
+            else:
+                st.info("No hay equipos creados aún. Crea dos equipos para poder generar un Versus.")
+
+        with tab_versus:
+            eqs = db.reference('equipos').get()
+            if eqs and len(eqs) >= 2:
+                st.write("Selecciona los dos equipos que se van a enfrentar:")
+                nombres_equipos = {k: v['nombre'] for k, v in eqs.items()}
+                
+                col_eq1, col_eq2 = st.columns(2)
+                with col_eq1:
+                    id_equipo_1 = st.selectbox("🛡️ Equipo 1", list(nombres_equipos.keys()), format_func=lambda x: nombres_equipos[x])
+                with col_eq2:
+                    # Ponemos el índice en 1 para que seleccione un equipo diferente por defecto
+                    id_equipo_2 = st.selectbox("⚔️ Equipo 2", list(nombres_equipos.keys()), format_func=lambda x: nombres_equipos[x], index=1)
+                
+                if st.button("🔥 GENERAR CARTELERA DE ENFRENTAMIENTO 🔥"):
+                    eq1 = eqs[id_equipo_1]
+                    eq2 = eqs[id_equipo_2]
+                    
+                    # Generamos el código HTML para la tarjeta visual
+                    st.markdown(f"""
+                    <div class="vs-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="width: 40%;">
+                                <div class="team-name">{eq1['nombre']}</div>
+                                <div class="team-players">
+                                    {'<br>'.join(eq1['jugadores'])}
+                                </div>
+                            </div>
+                            <div class="vs-text">VS</div>
+                            <div style="width: 40%;">
+                                <div class="team-name">{eq2['nombre']}</div>
+                                <div class="team-players">
+                                    {'<br>'.join(eq2['jugadores'])}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top:25px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
+                            <span style="color:#48CAE4; font-weight:bold; letter-spacing: 2px;">🏆 KYSEN INTERNAL SERIES 🏆</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.info("📸 ¡Toma una captura de pantalla (screenshot) de esta tarjeta para mandarla por WhatsApp!")
+                    
+                    # Notificación automática a Telegram
+                    msg_vs = f"🔥 *¡NUEVO ENFRENTAMIENTO 5v5!* 🔥\n\n🛡️ *{eq1['nombre']}*\n⚔️ VS ⚔️\n🛡️ *{eq2['nombre']}*\n\n¡Prepárense guerreros!"
+                    enviar_notificacion_tg(msg_vs)
+                    st.success("✅ ¡Notificación de Versus enviada a Telegram!")
+            else:
+                st.warning("⚠️ Necesitas registrar al menos 2 equipos en la pestaña anterior para generar un Versus.")
 
     elif pag == 'dar_puntos_coach':
         st.header("📈 DAR PUNTOS COACH (Solo Coach)")
@@ -614,4 +693,3 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
-
