@@ -614,3 +614,4 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
+
