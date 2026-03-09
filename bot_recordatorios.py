@@ -18,7 +18,7 @@ def enviar_aviso(mensaje="⚠️ *¡RECORDATORIO KYSEN!* ⚠️\n\nGuerreros, re
 
 # Aquí ajustas las horas a las que quieres que se envíe el mensaje
 schedule.every().day.at("09:00").do(enviar_aviso)
-schedule.every().day.at("14:30").do(enviar_aviso)
+schedule.every().day.at("16:00").do(enviar_aviso)
 schedule.every().day.at("20:00").do(enviar_aviso)
 
 print("Iniciando motor de alarmas Kysen E-Sports. Presiona Ctrl+C para detenerlo.")
@@ -30,3 +30,4 @@ enviar_aviso("🤖 *SISTEMA KYSEN:* El bot de recordatorios acaba de ser encendi
 while True:
     schedule.run_pending()
     time.sleep(60) # Revisa cada minuto para no gastar recursos
+
