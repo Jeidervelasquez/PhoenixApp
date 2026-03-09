@@ -23,6 +23,11 @@ schedule.every().day.at("20:00").do(enviar_aviso)
 
 print("Iniciando motor de alarmas Kysen E-Sports. Presiona Ctrl+C para detenerlo.")
 
+# Agregar esto para probar que sí conecta con Telegram
+print("Iniciando sistema... Enviando mensaje de prueba.")
+enviar_notificacion_tg("🤖 *SISTEMA KYSEN:* El bot de recordatorios acaba de ser encendido y está vigilando los eventos.")
 while True:
+
     schedule.run_pending()
+
     time.sleep(60) # Revisa cada minuto para no gastar recursos
