@@ -139,19 +139,9 @@ elif st.session_state['pagina'] == 'menu':
     rol_primario = u.get('rol_primario', 'N/A')
     rol_secundario = u.get('rol_secundario', 'N/A')
     nombre_usuario = u.get('nombre', 'Desconocido')
-# --- BUSCA ESTA LÍNEA EN TU CÓDIGO ---
-        if rol in ["Lider", "Administrador", "Moderador"]:
-            st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
-            if st.button("📝 REGISTRAR MIEMBRO"): ir_a('registro')
-            if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
-            
-            # --- ESTO ES LO QUE TIENES QUE PEGAR ---
-            if st.button("🛡️ PANEL DE CONTROL STAFF"): ir_a('panel_staff')
-            # ---------------------------------------
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown(f"""
-        <div style='text-align:center; margin-bottom: 30px;'>  
+        <div style='text-align:center; margin-bottom: 30px;'>
             <h2 style='color:#48CAE4;'>🖥️ DASHBOARD {rol.upper()}</h2>
             <p style='font-size:24px;'>Bienvenido, <b>{nombre_usuario}</b></p>
             <p style='font-size:18px; color:#F4A261;'>🎮 ID del Juego: <b>{id_juego_u}</b></p>
@@ -611,4 +601,3 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act.get('nombre', 'Coach')}); st.success("Ok")
-
