@@ -43,7 +43,7 @@ ROLES_JUEGO = ["Jungla", "Experiencia", "Mid", "Roam", "ADC"]
 
 # --- TELEGRAM CONFIGURACIÓN ---
 TOKEN_TELEGRAM = "8682305104:AAEJVSbX2uvBH2qXcRqtiMpfpBy4_2n42XY"
-ID_GRUPO_KYSEN = "-5114492594"
+ID_GRUPO_KYSEN = "-5100263771"
 
 def enviar_notificacion_tg(mensaje):
     url = f"https://api.telegram.org/bot{TOKEN_TELEGRAM}/sendMessage"
@@ -601,3 +601,4 @@ else:
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
         if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act.get('nombre', 'Coach')}); st.success("Ok")
+
