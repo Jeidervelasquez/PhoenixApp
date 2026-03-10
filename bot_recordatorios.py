@@ -3,7 +3,7 @@ import time
 import requests
 
 TOKEN_TELEGRAM = "8682305104:AAEJVSbX2uvBH2qXcRqtiMpfpBy4_2n42XY"
-ID_GRUPO_KYSEN = "-5100263771"
+ID_GRUPO_KYSEN = "-5114492594"
 
 def enviar_aviso(mensaje="⚠️ *¡RECORDATORIO KYSEN!* ⚠️\n\nGuerreros, revisa la App de gestión. Confirmen sus roles, asistencias a eventos y mantengan la disciplina. ¡El clan los necesita!"):
     # Asegúrate de tener tu TOKEN y ID arriba de esto
@@ -30,5 +30,6 @@ enviar_aviso("🤖 *SISTEMA KYSEN:* El bot de recordatorios acaba de ser encendi
 while True:
     schedule.run_pending()
     time.sleep(60) # Revisa cada minuto para no gastar recursos
+
 
 
