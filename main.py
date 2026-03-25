@@ -4,9 +4,7 @@ from firebase_admin import credentials, db
 import base64
 import datetime
 import os
-import requests
-from PIL import Image, ImageDraw, ImageFont
-import io
+import requests  # <-- LIBRERÍA AÑADIDA PARA TELEGRAM
 
 # --- 1. CONFIGURACIÓN ---
 st.set_page_config(page_title="KYSEN E-SPORTS", layout="wide", initial_sidebar_state="collapsed")
@@ -38,18 +36,21 @@ if not firebase_admin._apps:
     except: st.error("⚠️ Error Crítico: No se encontró 'llave.json'.")
 
 # --- CONSTANTES ---
-ID_LIDER_MAESTRO = "1234" 
+ID_LIDER_MAESTRO = "1234" # Tu Contraseña Maestra de Líder
 ROLES_JUEGO = ["Jungla", "Experiencia", "Mid", "Roam", "ADC"]
 
 # --- TELEGRAM CONFIGURACIÓN ---
 TOKEN_TELEGRAM = "8682305104:AAEJVSbX2uvBH2qXcRqtiMpfpBy4_2n42XY"
-ID_GRUPO_KYSEN = "-5100263771"
+ID_GRUPO_KYSEN = "-5114492594"
 
 def enviar_notificacion_tg(mensaje):
+    """Envía un aviso al grupo de Telegram del clan"""
     url = f"https://api.telegram.org/bot{TOKEN_TELEGRAM}/sendMessage"
     payload = {"chat_id": ID_GRUPO_KYSEN, "text": mensaje, "parse_mode": "Markdown"}
-    try: requests.post(url, data=payload, timeout=5)
-    except: pass
+    try:
+        requests.post(url, data=payload, timeout=5)
+    except:
+        pass # Si hay error de red, la app no se cuelga
 
 def notificar_telefono(mensaje):
     st.toast(f"🔔 NOTIFICACIÓN ENVIADA: {mensaje}")
@@ -57,47 +58,74 @@ def notificar_telefono(mensaje):
 def mostrar_logo():
     if os.path.exists("logo.png"):
         col_logo, col_espacio = st.columns([1, 8])
-        with col_logo: st.image("logo.png", use_container_width=True)
+        with col_logo:
+            st.image("logo.png", use_container_width=True)
 
+# NUEVA FUNCIÓN PARA LAS IMÁGENES DE LAS SCRIMS
 def procesar_imagen(archivo_subido):
-    if archivo_subido is not None: return base64.b64encode(archivo_subido.read()).decode()
+    if archivo_subido is not None:
+        return base64.b64encode(archivo_subido.read()).decode()
     return None
 
-def generar_imagen_versus_con_roles(eq1_nombre, eq1_jugadores, eq2_nombre, eq2_jugadores):
-    img = Image.new('RGB', (1200, 600), color=(15, 20, 35))
-    draw = ImageDraw.Draw(img)
-    try:
-        f_vs = ImageFont.truetype("arial.ttf", 80)
-        f_eq = ImageFont.truetype("arial.ttf", 40)
-        f_jug = ImageFont.truetype("arial.ttf", 25)
-    except:
-        f_vs = f_eq = f_jug = ImageFont.load_default()
-
-    draw.text((600, 300), "VS", fill=(230, 57, 70), font=f_vs, anchor="mm")
-    
-    draw.text((300, 100), eq1_nombre.upper(), fill=(72, 202, 228), font=f_eq, anchor="mm")
-    draw.text((900, 100), eq2_nombre.upper(), fill=(244, 162, 97), font=f_eq, anchor="mm")
-
-    y_start = 200
-    for i, j in enumerate(eq1_jugadores):
-        draw.text((300, y_start + (i*50)), j, fill="white", font=f_jug, anchor="mm")
-    for i, j in enumerate(eq2_jugadores):
-        draw.text((900, y_start + (i*50)), j, fill="white", font=f_jug, anchor="mm")
-
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
-
-# --- 3. ESTILOS PRO ---
+# --- 3. ESTILOS PRO (COMPATIBLE CON iOS / iPHONE) ---
 st.markdown("""
     <style>
-    html, body, [class*="css"], .stApp { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; color: white !important; }
-    h1, h2, h3, p, div, span, label, th, td { color: white !important; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); }
-    .stButton>button { background-color: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(10px) !important; border-radius: 12px !important; font-weight: bold !important; height: 3em; width: 100%; border: 1px solid rgba(255, 255, 255, 0.3) !important; transition: 0.3s; color: white !important; }
-    .stButton>button:hover { transform: scale(1.02); background-color: rgba(72, 202, 228, 0.3) !important; }
-    .btn-rojo button { border-color: #E63946 !important; } .btn-verde button { border-color: #2A9D8F !important; } .btn-dorado button { border-color: #F4A261 !important; } .btn-cyan button { border-color: #457B9D !important; } .btn-gris button { border-color: #adb5bd !important; }
-    .stTextInput > div > div > input, .stTextArea > div > div > textarea { color: white !important; background-color: rgba(0,0,0,0.4) !important; border: 1px solid rgba(255,255,255,0.2) !important; border-bottom: 2px solid #3B82F6 !important; border-radius: 8px !important; box-shadow: none !important; }
-    .vs-card { background: linear-gradient(135deg, rgba(15,20,35,0.95) 0%, rgba(35,45,75,0.95) 100%); border: 2px solid #48CAE4; border-radius: 20px; padding: 30px; text-align: center; margin: 20px 0; box-shadow: 0px 8px 20px rgba(0,0,0,0.7); }
+    html, body, [class*="css"], .stApp {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        color: white !important;
+    }
+
+    h1, h2, h3, p, div, span, label, th, td { 
+        color: white !important; 
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.9); 
+    }
+    
+    .stButton>button { 
+        background-color: rgba(255, 255, 255, 0.15) !important; 
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border-radius: 12px !important; 
+        font-weight: bold !important; 
+        height: 3em; 
+        width: 100%; 
+        border: 1px solid rgba(255, 255, 255, 0.3) !important; 
+        transition: 0.3s; 
+        color: white !important;
+    }
+    .stButton>button:hover { 
+        transform: scale(1.02); 
+        background-color: rgba(72, 202, 228, 0.3) !important; 
+    }
+    
+    .btn-rojo button { border-color: #E63946 !important; }
+    .btn-verde button { border-color: #2A9D8F !important; }
+    .btn-dorado button { border-color: #F4A261 !important; }
+    .btn-cyan button { border-color: #457B9D !important; }
+    .btn-gris button { border-color: #adb5bd !important; }
+    
+    .stTextInput > div > div > input, .stTextArea > div > div > textarea { 
+        color: white !important; 
+        background-color: rgba(0,0,0,0.4) !important; 
+        border: 1px solid rgba(255,255,255,0.2) !important; 
+        border-bottom: 2px solid #3B82F6 !important; 
+        border-radius: 8px !important;
+        box-shadow: none !important;
+    }
+    .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
+        border-bottom: 2px solid #48CAE4 !important; 
+        background-color: rgba(0,0,0,0.6) !important;
+    }
+
+    /* ESTILOS PARA LA TARJETA DE VERSUS */
+    .vs-card {
+        background: linear-gradient(135deg, rgba(15,20,35,0.95) 0%, rgba(35,45,75,0.95) 100%);
+        border: 2px solid #48CAE4; 
+        border-radius: 20px; 
+        padding: 30px; 
+        text-align: center; 
+        margin: 20px 0;
+        box-shadow: 0px 8px 20px rgba(0,0,0,0.7);
+    }
     .team-name { color: #F4A261; font-size: 28px; font-weight: 900; text-transform: uppercase; text-shadow: 2px 2px #000;}
     .vs-text { color: white; font-size: 55px; font-weight: 900; font-style: italic; text-shadow: 3px 3px #E63946; margin: 0 20px;}
     .team-players { font-size:16px; color:#ddd; margin-top: 10px; font-weight: bold;}
@@ -116,7 +144,9 @@ if st.session_state['pagina'] == 'login':
     st.markdown("<h1 style='text-align: center; color: #48CAE4; font-size: 50px; margin-top: 50px;'>⚡ KYSEN E-SPORTS ⚡</h1>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1,2,1])
     with c2:
+        st.write("")
         id_in = st.text_input("Ingresa tu Contraseña", type="password").strip()
+        st.write("")
         if st.button("ENTRAR A KYSEN"):
             if id_in:
                 res = db.reference(f'usuarios/{id_in}').get()
@@ -135,32 +165,38 @@ elif st.session_state['pagina'] == 'menu':
 
     sanciones_actuales = u.get('sanciones', 0)
     suspendido = sanciones_actuales >= 3
+
     id_juego_u = u.get('id_juego', 'No registrado')
     rol_primario = u.get('rol_primario', 'N/A')
     rol_secundario = u.get('rol_secundario', 'N/A')
-    nombre_usuario = u.get('nombre', 'Desconocido')
 
     st.markdown(f"""
         <div style='text-align:center; margin-bottom: 30px;'>
             <h2 style='color:#48CAE4;'>🖥️ DASHBOARD {rol.upper()}</h2>
-            <p style='font-size:24px;'>Bienvenido, <b>{nombre_usuario}</b></p>
+            <p style='font-size:24px;'>Bienvenido, <b>{u.get('nombre')}</b></p>
             <p style='font-size:18px; color:#F4A261;'>🎮 ID del Juego: <b>{id_juego_u}</b></p>
             <p style='font-size:18px;'>⚔️ Rol Primario: <b style='color:#2A9D8F;'>{rol_primario}</b> &nbsp;&nbsp;|&nbsp;&nbsp; 🛡️ Rol Secundario: <b style='color:#E63946;'>{rol_secundario}</b></p>
         </div>
     """, unsafe_allow_html=True)
 
+    # --- SECCIÓN DE ANUNCIOS MODIFICADA (CON BORRADO) ---
     anuncios = db.reference('anuncios').get()
     if anuncios:
         for k, a in anuncios.items():
-            col_a, col_b = st.columns([0.85, 0.15])
-            col_a.warning(f"📢 **AVISO DE {a.get('autor', 'Admin')}:** {a.get('texto', '')}")
+            col_a, col_b = st.columns([0.85, 0.15]) # Dividimos el espacio
+            col_a.warning(f"📢 **AVISO DE {a['autor']}:** {a['texto']}")
+            # Solo los líderes o administradores pueden borrar los anuncios
             if rol in ["Lider", "Administrador"]:
                 if col_b.button("🗑️ Borrar", key=f"del_an_{k}"):
-                    db.reference(f'anuncios/{k}').delete(); st.rerun()
+                    db.reference(f'anuncios/{k}').delete()
+                    st.rerun()
 
-    if suspendido: st.error(f"🚫 ATENCIÓN: Tienes {sanciones_actuales} sanciones. ESTÁS SUSPENDIDO.")
+    if suspendido:
+        st.error(f"🚫 ATENCIÓN: Tienes {sanciones_actuales} sanciones. ESTÁS SUSPENDIDO esta semana. No podrás participar en eventos ni scrims.")
 
     c1, c2, c3 = st.columns(3)
+
+    # --- COLUMNA 1: GESTIÓN ---
     with c1:
         st.subheader("🛡️ Gestión y Clan")
         st.markdown('<div class="btn-cyan">', unsafe_allow_html=True)
@@ -168,12 +204,14 @@ elif st.session_state['pagina'] == 'menu':
         if st.button("🏆 VER EVENTOS"): ir_a('ver_eventos')
         if st.button("📜 REGLAS OFICIALES"): ir_a('reglas')
         st.markdown('</div>', unsafe_allow_html=True)
+
         if rol in ["Lider", "Administrador", "Moderador"]:
             st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
             if st.button("📝 REGISTRAR MIEMBRO"): ir_a('registro')
             if st.button("📅 CREAR EVENTO"): ir_a('crear_evento')
             st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- COLUMNA 2: DEPORTIVO ---
     with c2:
         st.subheader("⚔️ Área Deportiva")
         st.markdown('<div class="btn-dorado">', unsafe_allow_html=True)
@@ -181,27 +219,34 @@ elif st.session_state['pagina'] == 'menu':
         if st.button("🎮 HISTORIAL DE SCRIMS"): ir_a('partidas')
         if st.button("👀 VER LINEUP"): ir_a('ver_lineup')
         st.markdown('</div>', unsafe_allow_html=True)
+
         if rol in ["Lider", "Administrador"]:
             st.markdown('<div class="btn-dorado">', unsafe_allow_html=True)
             if st.button("⭐ RANKING PTS BENEFICIO"): ir_a('ranking_beneficios')
             st.markdown('</div>', unsafe_allow_html=True)
+
         if rol in ["Lider", "Coach"]:
             st.markdown('<div class="btn-dorado">', unsafe_allow_html=True)
             if st.button("⭐ RANKING PTS COACH"): ir_a('ranking_coach')
             st.markdown('</div>', unsafe_allow_html=True)
+
         if rol in ["Lider", "Coach", "Moderador"]:
             if st.button("⚔️ FORMAR EQUIPOS (5v5)"): ir_a('coach_equipos')
+        
         if rol in ["Lider", "Coach"]:
             if st.button("📝 DEFINIR LINEUP OFICIAL"): ir_a('definir_lineup')
+
         if rol == "Coach":
             st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
             if st.button("📈 DAR PUNTOS (COACH)"): ir_a('dar_puntos_coach')
             st.markdown('</div>', unsafe_allow_html=True)
+            
         if rol in ["Lider", "Administrador"]:
             st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
             if st.button("🎁 DAR PUNTOS BENEFICIO"): ir_a('dar_puntos_beneficios')
             st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- COLUMNA 3: ADMINISTRACIÓN / EXCLUSIVO LÍDER ---
     with c3:
         st.subheader("⚙️ Administración")
         if rol in ["Lider", "Administrador"]:
@@ -211,6 +256,7 @@ elif st.session_state['pagina'] == 'menu':
             if st.button("⚖️ EVALUAR MODERADORES"): ir_a('evaluar_mods')
             if st.button("⚠️ SANCIONES"): ir_a('sanciones')
             st.markdown('</div>', unsafe_allow_html=True)
+
         if rol == "Lider":
             st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
             if st.button("💎 TESORERÍA (DIAMANTES)"): ir_a('diamantes')
@@ -218,6 +264,7 @@ elif st.session_state['pagina'] == 'menu':
             if st.button("🔧 CAMBIAR CONTRASEÑA DE ALGUIEN"): ir_a('cambio_id')
             if st.button("❌ ELIMINAR MIEMBRO"): ir_a('eliminar')
             st.markdown('</div>', unsafe_allow_html=True)
+            
         if rol == "Coach":
             if st.button("🎁 SUGERIR PREMIO AL LÍDER"): ir_a('coach_premios')
 
@@ -248,8 +295,12 @@ else:
             d = st.text_area("Nota / Descripción para los miembros")
             if st.form_submit_button("PUBLICAR EVENTO"):
                 db.reference('eventos').push().set({'nombre': t, 'fecha': str(f), 'descripcion': d})
+                notificar_telefono(f"NUEVO EVENTO: {t} para la fecha {f}")
+                
+                # --- AQUÍ MANDA TELEGRAM ---
                 msg = f"📅 *NUEVO EVENTO CREADO*\n\n🏆 *Evento:* {t}\n🗓️ *Fecha:* {f}\n📝 *Detalles:* {d}\n\n¡Entren a la App para confirmar asistencia!"
                 enviar_notificacion_tg(msg)
+                
                 st.success("Evento publicado correctamente.")
 
     elif pag == 'ver_eventos':
@@ -257,18 +308,20 @@ else:
         evs = db.reference('eventos').get()
         if evs:
             for eid, info in evs.items():
-                st.markdown(f'<h3 style="color:#F4A261;">⚡ {info.get("nombre", "Evento")}</h3><p><b>📅 Fecha:</b> {info.get("fecha", "Sin fecha")}<br><b>📝 Nota:</b> {info.get("descripcion", "")}</p>', unsafe_allow_html=True)
+                st.markdown(f'<h3 style="color:#F4A261;">⚡ {info["nombre"]}</h3><p><b>📅 Fecha:</b> {info.get("fecha", "Sin fecha")}<br><b>📝 Nota:</b> {info["descripcion"]}</p>', unsafe_allow_html=True)
                 c1, c2 = st.columns(2)
                 if not suspendido:
                     if c1.button("🙋 ASISTIR", key=f"a_{eid}"):
-                        db.reference(f'eventos/{eid}/asistentes/{id_act}').set(u_act.get('nombre', 'Desconocido'))
+                        db.reference(f'eventos/{eid}/asistentes/{id_act}').set(u_act['nombre'])
                         st.success("Anotado")
                 else: c1.error("Estás suspendido.")
+
                 if rol_s in ["Lider", "Moderador"]:
                     st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
                     if c2.button("🗑️ ELIMINAR EVENTO", key=f"del_{eid}"):
                         db.reference(f'eventos/{eid}').delete(); st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
+                
                 asis = info.get('asistentes', {})
                 if asis: st.write(f"✅ **Asistentes:** {', '.join(asis.values())}")
                 st.write("---")
@@ -279,12 +332,14 @@ else:
         data = db.reference('usuarios').get()
         if data:
             for k, v in data.items():
-                if rol_s == "Lider": st.error(f"🔑 Contraseña del usuario: {k}")
-                elif str(id_act) == str(k): st.error(f"🔑 Tu Contraseña: {k}")
-                # Corrección de seguridad aquí
-                st.write(f"👤 **{v.get('nombre', 'Sin Nombre')}** | 🛡️ {v.get('rol', 'N/A')} | 🎮 ID: {v.get('id_juego', 'N/A')}")
+                if rol_s == "Lider":
+                    st.error(f"🔑 Contraseña del usuario: {k}")
+                elif str(id_act) == str(k):
+                    st.error(f"🔑 Tu Contraseña: {k}")
+                
+                st.write(f"👤 **{v['nombre']}** | 🛡️ {v['rol']} | 🎮 ID: {v.get('id_juego', 'N/A')}")
                 if v.get('rol') not in ['Coach', 'Administrador']:
-                    st.write(f"⚔️ **Roles:** {v.get('rol_primario', 'N/A')} / {v.get('rol_secundario', 'N/A')}")
+                    st.write(f"⚔️ **Roles:** {v.get('rol_primario')} / {v.get('rol_secundario')}")
                 st.write("---")
 
     elif pag == 'registro':
@@ -293,13 +348,17 @@ else:
             ni = st.text_input("Contraseña del Nuevo Usuario")
             nn = st.text_input("Nombre / Nickname")
             id_j = st.text_input("ID del Juego (Obligatorio)") 
+            
             nr = st.selectbox("Rango", ["Miembro", "Moderador", "Coach", "Administrador"])
+            
             p_rol, s_rol = "N/A", "N/A"
             if nr not in ["Coach", "Administrador"]:
                 p_rol = st.selectbox("Rol Primario", ROLES_JUEGO)
                 s_rol = st.selectbox("Rol Secundario", ROLES_JUEGO)
+                
             if st.form_submit_button("REGISTRAR"):
-                if id_j.strip() == "": st.error("⚠️ El ID del Juego no puede estar vacío.")
+                if id_j.strip() == "":
+                    st.error("⚠️ El ID del Juego no puede estar vacío.")
                 else:
                     datos = {'nombre':nn, 'id_juego': id_j, 'rol':nr, 'Diamantes':0, 'deuda':0, 'sanciones':0, 'puntos_coach':0, 'puntos_beneficio': 0, 'rol_primario':p_rol, 'rol_secundario':s_rol}
                     db.reference(f'usuarios/{ni}').set(datos)
@@ -309,58 +368,74 @@ else:
         st.header("📝 DEFINIR LINEUP OFICIAL")
         data = db.reference('usuarios').get()
         if data:
-            # Corrección de seguridad aplicada aquí
-            opc = [f"{v.get('nombre', 'Sin Nombre')} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') not in ['Coach', 'Administrador']]
+            opc = [f"{v['nombre']} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') not in ['Coach', 'Administrador']]
             tits = st.multiselect("5 Titulares", opc)
             sups = st.multiselect("5 Suplentes", opc)
             if st.button("GUARDAR LINEUP"):
                 if len(tits) == 5 and len(sups) == 5:
-                    db.reference('lineup_actual').set({'titulares': tits, 'suplentes': sups, 'autor': u_act.get('nombre', 'Admin')})
+                    db.reference('lineup_actual').set({'titulares': tits, 'suplentes': sups, 'autor': u_act['nombre']})
                     st.success("Lineup Actualizado")
                 else: st.warning("Debes elegir 5 de cada uno.")
 
+    # --- SECCIÓN DE EQUIPOS MODIFICADA (CON CARTELERA VERSUS) ---
     elif pag == 'coach_equipos':
         st.header("⚔️ GESTIÓN DE EQUIPOS 5v5")
+        
         tab_registro, tab_versus = st.tabs(["📝 CREAR EQUIPOS", "🔥 CARTELERA VERSUS"])
+        
         with tab_registro:
             data = db.reference('usuarios').get()
             if data:
-                # Corrección de seguridad aplicada aquí
-                opc = [f"{v.get('nombre', 'Sin Nombre')} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') not in ['Coach', 'Administrador']]
+                opc = [f"{v['nombre']} ({v.get('rol_primario','?')})" for k,v in data.items() if v.get('rol') not in ['Coach', 'Administrador']]
                 n_eq = st.text_input("Nombre del Equipo")
                 j_eq = st.multiselect("Selecciona 5 Integrantes", opc)
                 if st.button("REGISTRAR EQUIPO"):
                     db.reference('equipos').push().set({'nombre': n_eq, 'jugadores': j_eq})
                     st.success("Equipo Creado."); st.rerun()
+            
             st.subheader("Equipos Registrados actualmente")
             eqs = db.reference('equipos').get()
             if eqs:
                 for k, v in eqs.items():
-                    st.write(f"🚩 **{v.get('nombre', 'Sin Nombre')}**: {', '.join(v.get('jugadores', []))}")
+                    st.write(f"🚩 **{v['nombre']}**: {', '.join(v['jugadores'])}")
                     if st.button("Borrar Equipo", key=k): db.reference(f'equipos/{k}').delete(); st.rerun()
-            else: st.info("No hay equipos creados aún.")
+            else:
+                st.info("No hay equipos creados aún. Crea dos equipos para poder generar un Versus.")
 
         with tab_versus:
             eqs = db.reference('equipos').get()
             if eqs and len(eqs) >= 2:
-                nombres_equipos = {k: v.get('nombre', 'Sin Nombre') for k, v in eqs.items()}
+                st.write("Selecciona los dos equipos que se van a enfrentar:")
+                nombres_equipos = {k: v['nombre'] for k, v in eqs.items()}
+                
                 col_eq1, col_eq2 = st.columns(2)
-                with col_eq1: id_equipo_1 = st.selectbox("🛡️ Equipo 1", list(nombres_equipos.keys()), format_func=lambda x: nombres_equipos[x])
-                with col_eq2: id_equipo_2 = st.selectbox("⚔️ Equipo 2", list(nombres_equipos.keys()), format_func=lambda x: nombres_equipos[x], index=1)
+                with col_eq1:
+                    id_equipo_1 = st.selectbox("🛡️ Equipo 1", list(nombres_equipos.keys()), format_func=lambda x: nombres_equipos[x])
+                with col_eq2:
+                    # Ponemos el índice en 1 para que seleccione un equipo diferente por defecto
+                    id_equipo_2 = st.selectbox("⚔️ Equipo 2", list(nombres_equipos.keys()), format_func=lambda x: nombres_equipos[x], index=1)
                 
                 if st.button("🔥 GENERAR CARTELERA DE ENFRENTAMIENTO 🔥"):
-                    eq1, eq2 = eqs[id_equipo_1], eqs[id_equipo_2]
-                    eq1_nom = eq1.get('nombre', 'Equipo 1')
-                    eq1_jugs = eq1.get('jugadores', [])
-                    eq2_nom = eq2.get('nombre', 'Equipo 2')
-                    eq2_jugs = eq2.get('jugadores', [])
-
+                    eq1 = eqs[id_equipo_1]
+                    eq2 = eqs[id_equipo_2]
+                    
+                    # Generamos el código HTML para la tarjeta visual
                     st.markdown(f"""
                     <div class="vs-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="width: 40%;"><div class="team-name">{eq1_nom}</div><div class="team-players">{'<br>'.join(eq1_jugs)}</div></div>
+                            <div style="width: 40%;">
+                                <div class="team-name">{eq1['nombre']}</div>
+                                <div class="team-players">
+                                    {'<br>'.join(eq1['jugadores'])}
+                                </div>
+                            </div>
                             <div class="vs-text">VS</div>
-                            <div style="width: 40%;"><div class="team-name">{eq2_nom}</div><div class="team-players">{'<br>'.join(eq2_jugs)}</div></div>
+                            <div style="width: 40%;">
+                                <div class="team-name">{eq2['nombre']}</div>
+                                <div class="team-players">
+                                    {'<br>'.join(eq2['jugadores'])}
+                                </div>
+                            </div>
                         </div>
                         <div style="margin-top:25px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
                             <span style="color:#48CAE4; font-weight:bold; letter-spacing: 2px;">🏆 KYSEN INTERNAL SERIES 🏆</span>
@@ -368,111 +443,74 @@ else:
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    img_bytes = generar_imagen_versus_con_roles(eq1_nom, eq1_jugs, eq2_nom, eq2_jugs)
-                    st.download_button(
-                        label="📥 DESCARGAR IMAGEN DEL VERSUS",
-                        data=img_bytes,
-                        file_name=f"Versus_{eq1_nom}_vs_{eq2_nom}.png",
-                        mime="image/png"
-                    )
-
-                    msg_vs = f"🔥 *¡NUEVO ENFRENTAMIENTO 5v5!* 🔥\n\n🛡️ *{eq1_nom}*\n⚔️ VS ⚔️\n🛡️ *{eq2_nom}*\n\n¡Prepárense guerreros!"
+                    st.info("📸 ¡Toma una captura de pantalla (screenshot) de esta tarjeta para mandarla por WhatsApp!")
+                    
+                    # Notificación automática a Telegram
+                    msg_vs = f"🔥 *¡NUEVO ENFRENTAMIENTO 5v5!* 🔥\n\n🛡️ *{eq1['nombre']}*\n⚔️ VS ⚔️\n🛡️ *{eq2['nombre']}*\n\n¡Prepárense guerreros!"
                     enviar_notificacion_tg(msg_vs)
                     st.success("✅ ¡Notificación de Versus enviada a Telegram!")
-            else: st.warning("⚠️ Necesitas registrar al menos 2 equipos.")
+            else:
+                st.warning("⚠️ Necesitas registrar al menos 2 equipos en la pestaña anterior para generar un Versus.")
 
     elif pag == 'dar_puntos_coach':
         st.header("📈 DAR PUNTOS COACH (Solo Coach)")
         data = db.reference('usuarios').get()
-        if data:
-            for k, v in data.items():
-                if v.get('rol') not in ['Coach', 'Administrador', 'Lider']:
-                    c1, c2 = st.columns([3, 1])
-                    # Corrección de seguridad aplicada aquí
-                    c1.write(f"👤 {v.get('nombre', 'Sin Nombre')} (Actual: {v.get('puntos_coach', 0)})")
-                    pts = c2.number_input("Pts Coach", step=1, key=f"pc_{k}")
-                    if st.button("DAR", key=f"bc_{k}"): db.reference(f'usuarios/{k}').update({'puntos_coach': v.get('puntos_coach', 0) + pts}); st.rerun()
+        for k, v in data.items():
+            if v.get('rol') not in ['Coach', 'Administrador', 'Lider']:
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"👤 {v['nombre']} (Actual: {v.get('puntos_coach', 0)})")
+                pts = c2.number_input("Pts Coach", step=1, key=f"pc_{k}")
+                if st.button("DAR", key=f"bc_{k}"):
+                    db.reference(f'usuarios/{k}').update({'puntos_coach': v.get('puntos_coach', 0) + pts}); st.rerun()
 
     elif pag == 'ranking_coach':
         st.header("⭐ RANKING PUNTOS COACH")
         data = db.reference('usuarios').get()
         if data:
-            # Corrección de seguridad aplicada aquí
-            r = sorted([{'n':v.get('nombre', 'Sin Nombre'), 'p':v.get('puntos_coach',0)} for k,v in data.items() if v.get('rol') not in ['Coach', 'Admin', 'Lider']], key=lambda x:x['p'], reverse=True)
+            r = sorted([{'n':v['nombre'], 'p':v.get('puntos_coach',0)} for k,v in data.items() if v.get('rol') not in ['Coach', 'Admin', 'Lider']], key=lambda x:x['p'], reverse=True)
             for i, j in enumerate(r): st.write(f"{i+1}. **{j['n']}** - {j['p']} Pts Coach")
-elif pag == 'dar_puntos_beneficios':
-        st.header("🎁 GESTIÓN DE PUNTOS DE BENEFICIO")
+
+    elif pag == 'dar_puntos_beneficios':
+        st.header("🎁 DAR PUNTOS DE BENEFICIO")
         data = db.reference('usuarios').get()
-        if data:
-            # Filtramos para mostrar solo a los que pueden recibir puntos
-            candidatos = {k: v for k, v in data.items() if v.get('rol') not in ['Coach', 'Administrador', 'Lider']}
-            
-            if candidatos:
-                # 1. Seleccionamos al jugador con un menú desplegable
-                opciones = {k: f"👤 {v.get('nombre', 'Sin Nombre')} (Puntos Actuales: {v.get('puntos_beneficio', 0)})" for k, v in candidatos.items()}
-                id_seleccionado = st.selectbox("Selecciona al guerrero:", list(opciones.keys()), format_func=lambda x: opciones[x])
-                
-                # 2. Elegimos la cantidad a modificar
-                cantidad = st.number_input("Cantidad de Puntos", min_value=1, step=1, value=1)
-                
-                # 3. Los dos botones lado a lado
-                col_sumar, col_restar = st.columns(2)
-                
-                puntos_actuales = candidatos[id_seleccionado].get('puntos_beneficio', 0)
-                nombre_jugador = candidatos[id_seleccionado].get('nombre', 'Desconocido')
-
-                with col_sumar:
-                    st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
-                    if st.button("➕ SUMAR PUNTOS"):
-                        db.reference(f'usuarios/{id_seleccionado}').update({'puntos_beneficio': puntos_actuales + cantidad})
-                        st.success(f"¡Se sumaron {cantidad} puntos a {nombre_jugador}!")
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                with col_restar:
-                    st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
-                    if st.button("➖ RESTAR PUNTOS"):
-                        nuevos_puntos = puntos_actuales - cantidad
-                        if nuevos_puntos < 0: nuevos_puntos = 0 # El sistema evita que queden en negativo
-                        
-                        db.reference(f'usuarios/{id_seleccionado}').update({'puntos_beneficio': nuevos_puntos})
-                        st.warning(f"Se restaron {cantidad} puntos a {nombre_jugador}.")
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.info("No hay miembros disponibles para gestionar puntos.")
+        for k, v in data.items():
+            if v.get('rol') not in ['Coach', 'Administrador', 'Lider']:
+                c1, c2 = st.columns([3, 1])
+                c1.write(f"👤 {v['nombre']} (Actual: {v.get('puntos_beneficio', 0)})")
+                pts = c2.number_input("Pts Beneficio", step=1, key=f"pb_{k}")
+                if st.button("DAR", key=f"bb_{k}"):
+                    db.reference(f'usuarios/{k}').update({'puntos_beneficio': v.get('puntos_beneficio', 0) + pts}); st.rerun()
 
     elif pag == 'ranking_beneficios':
         st.header("⭐ RANKING PUNTOS DE BENEFICIO")
         data = db.reference('usuarios').get()
         if data:
-            # Corrección de seguridad aplicada aquí
-            r = sorted([{'n':v.get('nombre', 'Sin Nombre'), 'p':v.get('puntos_beneficio',0)} for k,v in data.items() if v.get('rol') not in ['Coach', 'Admin', 'Lider']], key=lambda x:x['p'], reverse=True)
+            r = sorted([{'n':v['nombre'], 'p':v.get('puntos_beneficio',0)} for k,v in data.items() if v.get('rol') not in ['Coach', 'Admin', 'Lider']], key=lambda x:x['p'], reverse=True)
             for i, j in enumerate(r): st.write(f"{i+1}. **{j['n']}** - {j['p']} Pts Beneficio")
 
     elif pag == 'evaluar_jugadores':
         st.header("📊 EVALUACIÓN DE JUGADORES (1 al 10)")
         data = db.reference('usuarios').get()
-        if data:
-            # Corrección de seguridad aplicada aquí
-            jugadores = {k: v.get('nombre', 'Sin Nombre') for k, v in data.items() if v.get('rol') == 'Miembro'}
-            j_sel = st.selectbox("Jugador", list(jugadores.keys()), format_func=lambda x: jugadores[x])
-            if j_sel:
-                rend = st.slider("Rendimiento", 1, 10, 5); act = st.slider("Actitud", 1, 10, 5)
-                com = st.slider("Comunicación", 1, 10, 5); comp = st.slider("Compromiso", 1, 10, 5)
-                if st.button("GUARDAR"):
-                    db.reference(f'usuarios/{j_sel}/evaluacion_admin').set({'rendimiento': rend, 'actitud': act, 'comunicacion': com, 'compromiso': comp}); st.success("Guardado.")
+        jugadores = {k: v['nombre'] for k, v in data.items() if v.get('rol') == 'Miembro'}
+        j_sel = st.selectbox("Jugador", list(jugadores.keys()), format_func=lambda x: jugadores[x])
+        if j_sel:
+            rend = st.slider("Rendimiento", 1, 10, 5); act = st.slider("Actitud", 1, 10, 5)
+            com = st.slider("Comunicación", 1, 10, 5); comp = st.slider("Compromiso", 1, 10, 5)
+            if st.button("GUARDAR"):
+                db.reference(f'usuarios/{j_sel}/evaluacion_admin').set({'rendimiento': rend, 'actitud': act, 'comunicacion': com, 'compromiso': comp})
+                st.success("Guardado.")
 
     elif pag == 'evaluar_mods':
         st.header("⚖️ EVALUACIÓN DE MODERADORES")
         data = db.reference('usuarios').get()
-        if data:
-            # Corrección de seguridad aplicada aquí
-            mods = {k: v.get('nombre', 'Sin Nombre') for k, v in data.items() if v.get('rol') == 'Moderador'}
-            if mods:
-                m_sel = st.selectbox("Moderador", list(mods.keys()), format_func=lambda x: mods[x])
-                actividad = st.slider("Actividad", 1, 10, 5); inter = st.slider("Intervención", 1, 10, 5)
-                if st.button("EVALUAR"): db.reference(f'usuarios/{m_sel}/evaluacion_mod').set({'actividad': actividad, 'inter': inter}); st.success("Guardado.")
+        mods = {k: v['nombre'] for k, v in data.items() if v.get('rol') == 'Moderador'}
+        if mods:
+            m_sel = st.selectbox("Moderador", list(mods.keys()), format_func=lambda x: mods[x])
+            actividad = st.slider("Actividad", 1, 10, 5); inter = st.slider("Intervención", 1, 10, 5)
+            if st.button("EVALUAR"):
+                db.reference(f'usuarios/{m_sel}/evaluacion_mod').set({'actividad': actividad, 'inter': inter})
+                st.success("Guardado.")
+        else: st.info("No hay moderadores.")
 
     elif pag == 'sanciones':
         st.header("⚠️ SANCIONES")
@@ -482,7 +520,7 @@ elif pag == 'dar_puntos_beneficios':
             if r.get():
                 n = r.get().get('sanciones', 0) + 1
                 r.update({'sanciones': n})
-                if n >= 3: notificar_telefono(f"¡{r.get().get('nombre', 'Usuario')} ha sido SUSPENDIDO!")
+                if n >= 3: notificar_telefono(f"¡{r.get()['nombre']} ha sido SUSPENDIDO!")
                 st.error(f"Sancionado. Total: {n}")
         if st.button("PERDONAR (CERO)"):
             r = db.reference(f'usuarios/{tid}')
@@ -491,7 +529,8 @@ elif pag == 'dar_puntos_beneficios':
     elif pag == 'eliminar':
         st.header("❌ ELIMINAR MIEMBRO")
         did = st.text_input("Contraseña a eliminar")
-        if st.button("CONFIRMAR DESPIDO"): db.reference(f'usuarios/{did}').delete(); st.success("Borrado"); st.rerun()
+        if st.button("CONFIRMAR DESPIDO"):
+            db.reference(f'usuarios/{did}').delete(); st.success("Borrado"); st.rerun()
 
     elif pag == 'cambio_id':
         st.header("🔧 CAMBIAR CONTRASEÑA")
@@ -499,7 +538,7 @@ elif pag == 'dar_puntos_beneficios':
         if st.button("CAMBIAR"):
             d = db.reference(f'usuarios/{oid}').get()
             if d: db.reference(f'usuarios/{nid}').set(d); db.reference(f'usuarios/{oid}').delete(); st.success("Listo")
-
+            
     elif pag == 'diamantes':
         st.header("💎 TESORERÍA")
         tid = st.text_input("Contraseña (ID)"); amt = st.number_input("Monto", step=1)
@@ -511,9 +550,12 @@ elif pag == 'dar_puntos_beneficios':
         st.header("📢 PUBLICAR ANUNCIO GLOBAL")
         txt = st.text_area("Anuncio para el clan")
         if st.button("PUBLICAR"):
-            db.reference('anuncios').push().set({'texto': txt, 'autor': u_act.get('nombre', 'Admin')})
-            msg = f"📢 *ANUNCIO DE {u_act.get('nombre', 'Admin').upper()}*\n\n{txt}"
+            db.reference('anuncios').push().set({'texto': txt, 'autor': u_act['nombre']})
+            
+            # --- AQUÍ MANDA TELEGRAM ---
+            msg = f"📢 *ANUNCIO DE {u_act['nombre'].upper()}*\n\n{txt}"
             enviar_notificacion_tg(msg)
+            
             st.success("Publicado.")
 
     elif pag == 'hall_of_fame':
@@ -522,7 +564,9 @@ elif pag == 'dar_puntos_beneficios':
             with st.expander("Modificar"):
                 mj = st.text_input("Mejor Jugador"); md = st.text_input("Más Disciplinado")
                 ma = st.text_input("Más Asistente"); mvp = st.text_input("MVP Histórico")
-                if st.button("ACTUALIZAR"): db.reference('hall_of_fame').set({'mejor_jugador': mj, 'mas_disciplinado': md, 'mas_asistente': ma, 'mvp': mvp}); st.success("Actualizado")
+                if st.button("ACTUALIZAR"):
+                    db.reference('hall_of_fame').set({'mejor_jugador': mj, 'mas_disciplinado': md, 'mas_asistente': ma, 'mvp': mvp})
+                    st.success("Actualizado")
         hof = db.reference('hall_of_fame').get() or {}
         st.markdown(f'<div style="text-align:center;"><h3>Mejor Jugador: <span style="color:#48CAE4;">{hof.get("mejor_jugador", "N/A")}</span></h3><h3>MVP: <span style="color:#F4A261;">{hof.get("mvp", "N/A")}</span></h3></div>', unsafe_allow_html=True)
 
@@ -532,28 +576,32 @@ elif pag == 'dar_puntos_beneficios':
             nr = st.text_area("Editar Reglas")
             if st.button("GUARDAR"): db.reference('reglas_oficiales').set({'texto': nr}); st.success("Ok")
         r = db.reference('reglas_oficiales').get()
-        if r: st.markdown(f'<p>{r.get("texto", "")}</p>', unsafe_allow_html=True)
-
+        if r: st.markdown(f'<p>{r["texto"]}</p>', unsafe_allow_html=True)
+        
     elif pag == 'ver_lineup':
         st.header("👀 LINEUP OFICIAL")
         l = db.reference('lineup_actual').get()
         if l:
-            st.success(f"📌 Por: {l.get('autor', 'Desconocido')}")
+            st.success(f"📌 Por: {l.get('autor')}")
             st.markdown("### 🔥 TITULARES"); [st.write(f"⚔️ {t}") for t in l.get('titulares', [])]
             st.markdown("### 💤 SUPLENTES"); [st.write(f"🛡️ {s}") for s in l.get('suplentes', [])]
-
+            
+    # --- LA NUEVA SECCIÓN PRO DE PARTIDAS ---
     elif pag == 'partidas':
         st.header("🎮 HISTORIAL DE SCRIMS Y ESTADÍSTICAS")
         ps = db.reference('partidas').get() or {}
 
+        # --- 1. ESTADÍSTICAS CONTRA ESCUADRONES ---
         if ps:
             st.subheader("📊 NUESTRO RÉCORD CONTRA RIVALES")
             stats = {}
             for k, v in ps.items():
                 rival = str(v.get('rival', 'Desconocido')).upper().strip()
-                if rival not in stats: stats[rival] = {'Victoria': 0, 'Derrota': 0}
+                if rival not in stats:
+                    stats[rival] = {'Victoria': 0, 'Derrota': 0}
                 res = v.get('resultado', 'Derrota')
-                if res in stats[rival]: stats[rival][res] += 1
+                if res in stats[rival]:
+                    stats[rival][res] += 1
 
             cols = st.columns(3)
             idx = 0
@@ -569,6 +617,7 @@ elif pag == 'dar_puntos_beneficios':
                 idx += 1
             st.write("---")
 
+        # --- 2. HERRAMIENTAS DE GESTIÓN ---
         if rol_s in ["Lider", "Administrador", "Coach", "Moderador"]:
             col_reg, col_img = st.columns(2)
             with col_reg:
@@ -579,25 +628,35 @@ elif pag == 'dar_puntos_beneficios':
                         res = st.selectbox("Resultado Final", ["Victoria", "Derrota"])
                         if st.form_submit_button("GUARDAR REGISTRO"):
                             db.reference('partidas').push().set({'rival': riv, 'fecha': str(f), 'resultado': res})
+                            
+                            # --- AQUÍ MANDA TELEGRAM ---
                             emoji = "🔥" if res == "Victoria" else "💀"
                             msg = f"{emoji} *NUEVO RESULTADO DE SCRIM*\n\n⚔️ *Kysen vs {riv}*\n📊 *Resultado:* {res}\n\n¡Revisen el historial en la App!"
                             enviar_notificacion_tg(msg)
-                            st.success("✅ Partida registrada en la base de datos."); st.rerun()
+                            
+                            st.success("✅ Partida registrada en la base de datos.")
+                            st.rerun()
+
             with col_img:
                 with st.expander("🖼️ 2. ADJUNTAR CAPTURA"):
                     if ps:
-                        opciones = {k: f"{v.get('fecha', '')} | Kysen vs {v.get('rival', '')} ({v.get('resultado', '')})" for k, v in ps.items()}
+                        opciones = {k: f"{v['fecha']} | Kysen vs {v['rival']} ({v['resultado']})" for k, v in ps.items()}
                         id_partida = st.selectbox("Selecciona a quién le ponemos la foto:", list(opciones.keys()), format_func=lambda x: opciones[x])
                         img_file = st.file_uploader("Sube la imagen (JPG/PNG)", type=['png', 'jpg', 'jpeg'])
                         if st.button("VINCULAR IMAGEN"):
                             if img_file and id_partida:
                                 img_str = procesar_imagen(img_file)
                                 db.reference(f'partidas/{id_partida}').update({'imagen': img_str})
-                                st.success("✅ Captura guardada para este escuadrón."); st.rerun()
-                            else: st.warning("⚠️ Debes seleccionar un rival y subir un archivo primero.")
-                    else: st.info("Primero debes registrar un resultado en el paso 1.")
+                                st.success("✅ Captura guardada para este escuadrón.")
+                                st.rerun()
+                            else:
+                                st.warning("⚠️ Debes seleccionar un rival y subir un archivo primero.")
+                    else:
+                        st.info("Primero debes registrar un resultado en el paso 1.")
+
             st.write("---")
 
+        # --- 3. HISTORIAL DETALLADO ---
         st.subheader("📜 REGISTRO DETALLADO")
         if ps:
             items = list(ps.items())
@@ -606,30 +665,31 @@ elif pag == 'dar_puntos_beneficios':
                 c1, c2 = st.columns([2, 1])
                 with c1:
                     color_r = "#2A9D8F" if v.get('resultado') == "Victoria" else "#E63946"
-                    st.markdown(f"<h3 style='margin-bottom:0;'>🆚 Kysen vs {v.get('rival', 'Desconocido')}</h3>", unsafe_allow_html=True)
-                    st.markdown(f"**Resultado:** <span style='color:{color_r}; font-size:18px;'>{v.get('resultado', 'N/A')}</span> | **Fecha:** {v.get('fecha', 'N/A')}", unsafe_allow_html=True)
+                    st.markdown(f"<h3 style='margin-bottom:0;'>🆚 Kysen vs {v['rival']}</h3>", unsafe_allow_html=True)
+                    st.markdown(f"**Resultado:** <span style='color:{color_r}; font-size:18px;'>{v['resultado']}</span> | **Fecha:** {v['fecha']}", unsafe_allow_html=True)
                     if rol_s == "Lider":
                         if st.button("🗑️ Eliminar Registro", key=f"del_scrim_{k}"):
-                            db.reference(f'partidas/{k}').delete(); st.rerun()
+                            db.reference(f'partidas/{k}').delete()
+                            st.rerun()
                 with c2:
-                    if v.get('imagen'): st.image(f"data:image/png;base64,{v['imagen']}", use_container_width=True)
-                    else: st.markdown("<p style='color:#adb5bd; font-style:italic; margin-top:15px;'>Sin captura adjunta</p>", unsafe_allow_html=True)
+                    if v.get('imagen'):
+                        st.image(f"data:image/png;base64,{v['imagen']}", use_container_width=True)
+                    else:
+                        st.markdown("<p style='color:#adb5bd; font-style:italic; margin-top:15px;'>Sin captura adjunta</p>", unsafe_allow_html=True)
                 st.markdown("---")
-        else: st.info("No hay historial de partidas todavía.")
-
+        else:
+            st.info("No hay historial de partidas todavía.")
+            
     elif pag == 'ver_sugerencias':
         st.header("📩 NOTAS DEL COACH")
         s = db.reference('sugerencias').get()
         if s:
             for k, v in s.items():
-                st.write(f"De: **{v.get('c', 'Coach')}** - {v.get('m', '')}")
+                st.write(f"De: **{v['c']}** - {v['m']}")
                 if st.button("Borrar", key=k): db.reference(f'sugerencias/{k}').delete(); st.rerun()
                 st.write("---")
-
+                
     elif pag == 'coach_premios':
         st.header("🎁 SUGERIR PREMIO")
         n = st.text_area("Nota al Líder")
-        if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act.get('nombre', 'Coach')}); st.success("Ok")
-
-
-
+        if st.button("ENVIAR"): db.reference('sugerencias').push().set({'m': n, 'c': u_act['nombre']}); st.success("Ok")
