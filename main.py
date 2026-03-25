@@ -400,18 +400,47 @@ else:
             # Corrección de seguridad aplicada aquí
             r = sorted([{'n':v.get('nombre', 'Sin Nombre'), 'p':v.get('puntos_coach',0)} for k,v in data.items() if v.get('rol') not in ['Coach', 'Admin', 'Lider']], key=lambda x:x['p'], reverse=True)
             for i, j in enumerate(r): st.write(f"{i+1}. **{j['n']}** - {j['p']} Pts Coach")
-
-    elif pag == 'dar_puntos_beneficios':
-        st.header("🎁 DAR PUNTOS DE BENEFICIO")
+elif pag == 'dar_puntos_beneficios':
+        st.header("🎁 GESTIÓN DE PUNTOS DE BENEFICIO")
         data = db.reference('usuarios').get()
         if data:
-            for k, v in data.items():
-                if v.get('rol') not in ['Coach', 'Administrador', 'Lider']:
-                    c1, c2 = st.columns([3, 1])
-                    # Corrección de seguridad aplicada aquí
-                    c1.write(f"👤 {v.get('nombre', 'Sin Nombre')} (Actual: {v.get('puntos_beneficio', 0)})")
-                    pts = c2.number_input("Pts Beneficio", step=1, key=f"pb_{k}")
-                    if st.button("DAR", key=f"bb_{k}"): db.reference(f'usuarios/{k}').update({'puntos_beneficio': v.get('puntos_beneficio', 0) + pts}); st.rerun()
+            # Filtramos para mostrar solo a los que pueden recibir puntos
+            candidatos = {k: v for k, v in data.items() if v.get('rol') not in ['Coach', 'Administrador', 'Lider']}
+            
+            if candidatos:
+                # 1. Seleccionamos al jugador con un menú desplegable
+                opciones = {k: f"👤 {v.get('nombre', 'Sin Nombre')} (Puntos Actuales: {v.get('puntos_beneficio', 0)})" for k, v in candidatos.items()}
+                id_seleccionado = st.selectbox("Selecciona al guerrero:", list(opciones.keys()), format_func=lambda x: opciones[x])
+                
+                # 2. Elegimos la cantidad a modificar
+                cantidad = st.number_input("Cantidad de Puntos", min_value=1, step=1, value=1)
+                
+                # 3. Los dos botones lado a lado
+                col_sumar, col_restar = st.columns(2)
+                
+                puntos_actuales = candidatos[id_seleccionado].get('puntos_beneficio', 0)
+                nombre_jugador = candidatos[id_seleccionado].get('nombre', 'Desconocido')
+
+                with col_sumar:
+                    st.markdown('<div class="btn-verde">', unsafe_allow_html=True)
+                    if st.button("➕ SUMAR PUNTOS"):
+                        db.reference(f'usuarios/{id_seleccionado}').update({'puntos_beneficio': puntos_actuales + cantidad})
+                        st.success(f"¡Se sumaron {cantidad} puntos a {nombre_jugador}!")
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                with col_restar:
+                    st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
+                    if st.button("➖ RESTAR PUNTOS"):
+                        nuevos_puntos = puntos_actuales - cantidad
+                        if nuevos_puntos < 0: nuevos_puntos = 0 # El sistema evita que queden en negativo
+                        
+                        db.reference(f'usuarios/{id_seleccionado}').update({'puntos_beneficio': nuevos_puntos})
+                        st.warning(f"Se restaron {cantidad} puntos a {nombre_jugador}.")
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.info("No hay miembros disponibles para gestionar puntos.")
 
     elif pag == 'ranking_beneficios':
         st.header("⭐ RANKING PUNTOS DE BENEFICIO")
